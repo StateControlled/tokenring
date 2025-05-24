@@ -1,4 +1,4 @@
-package server
+package ticketingapplication.server
 
 import akka.actor.{Actor, ActorRef}
 

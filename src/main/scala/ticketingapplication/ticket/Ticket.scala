@@ -1,4 +1,4 @@
-package ticket
+package ticketingapplication.ticket
 
 /**
  * A ticket for an [[Event]].

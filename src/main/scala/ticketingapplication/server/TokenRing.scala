@@ -1,6 +1,7 @@
+package ticketingapplication.server
+
 import akka.actor.{ActorSystem, Props}
-import server.{Master, Kiosk, SetNextNode, Start, Token}
-import ticket.{Event, Venue}
+import ticketingapplication.ticket.{Event, Venue}
 
 object TokenRing extends App {
     private val concertHall = new Venue("Orchestra Hall", 50)

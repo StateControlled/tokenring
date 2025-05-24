@@ -1,7 +1,7 @@
-package server
+package ticketingapplication.server
 
 import akka.actor.ActorRef
-import ticket.Ticket
+import ticketingapplication.ticket.Ticket
 
 /**
  * Base for all messages which can be passed to a [[Kiosk]].

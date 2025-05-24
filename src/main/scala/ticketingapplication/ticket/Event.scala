@@ -1,4 +1,4 @@
-package ticket
+package ticketingapplication.ticket
 
 class Event(val venue: Venue) {
 

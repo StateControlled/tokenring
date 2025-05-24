@@ -1,6 +1,8 @@
-package server
+package ticketingapplication.server
 
-import ticket.{Event, Venue}
+import akka.actor.Address
+import com.typesafe.config.ConfigFactory
+import ticketingapplication.ticket.{Event, Venue}
 
 class Master(override val id : Int, venues: List[Venue], events: List[Event]) extends Kiosk(id) {
 
@@ -12,5 +14,7 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         case Start(token: Token) =>
             nextNode ! token
     }
+
+
 
 }

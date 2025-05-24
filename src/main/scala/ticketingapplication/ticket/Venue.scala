@@ -1,4 +1,4 @@
-package ticket
+package ticketingapplication.ticket
 
 /**
  * A Venue is a location where an [[Event]] is held.
