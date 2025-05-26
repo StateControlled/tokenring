@@ -11,6 +11,7 @@ import scala.util.Random
 class Chunk(val event: Event, var allocation: Int) {
     private val id = uuid()
     private var ticketsSold = 0
+    private var allocated: Boolean = false
 
     /**
      * Adjusts the number of tickets sold by the specified amount. <br>
@@ -54,6 +55,17 @@ class Chunk(val event: Event, var allocation: Int) {
 
     override def toString: String = {
         s"Chunk $id: Allocated $allocation tickets for event \"${event.getName}\""
+    }
+
+    /**
+     * @return <code>true</code> if this [[Chunk]] has not been allocated to a [[Kiosk]]
+     */
+    def isFree: Boolean = {
+        !allocated
+    }
+
+    def setIsAllocated(isAllocated: Boolean): Unit = {
+        allocated = isAllocated
     }
 
     private def uuid(): String = {

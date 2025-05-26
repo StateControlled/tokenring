@@ -3,7 +3,7 @@ package application.core
 import scala.util.Random
 
 /**
- * A ticket for an [[Event]].
+ * A ticket for an [[Event]]. A ticket is created at the end of a successful purchase.
  *
  * @param venue     the [[Venue]]
  * @param event     the [[Event]]

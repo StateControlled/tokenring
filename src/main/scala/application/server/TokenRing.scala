@@ -1,13 +1,15 @@
 package application.server
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import application.core.{CONCERT_HALL, Event, OUTDOOR, OUTDOOR_CONCERT_HALL, STADIUM, Venue}
 import com.typesafe.config.ConfigFactory
 
+import scala.io.StdIn.readLine
 import scala.util.Random
 
 object TokenRing extends App {
     private val config = ConfigFactory.load()
+    private var tokenId = config.getInt("server.token.token-id")
 //    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
 
     private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
@@ -33,28 +35,37 @@ object TokenRing extends App {
     //**********************************************************************************//
     
     private val system = ActorSystem("TicketSelling")
-//    private var nodes: List[ActorRef] = List.empty
-//
-//    private val node04 = system.actorOf(Props(classOf[Kiosk], 4), name="node4")
-//    private val node03 = system.actorOf(Props(classOf[Kiosk], 3), name="node3")
-//    private val node02 = system.actorOf(Props(classOf[Kiosk], 2), name="node2")
-//    private val node01 = system.actorOf(Props(classOf[Kiosk], 1), name="node1")
     private val master = system.actorOf(Props(classOf[Master], 0, venueList, eventList), name="master")
-//
-//    nodes = node04 :: node03 :: node02 :: node01 :: nodes
-
-    // Tell all actors what their neighbor node is
-//    master ! SetNextNode(node01)
-//    node01 ! SetNextNode(node02)
-//    node02 ! SetNextNode(node03)
-//    node03 ! SetNextNode(node04)
-//    node04 ! SetNextNode(master)
 
     Thread.sleep(5000)
 
-    private val token = Token(255)
+    run()
 
-    master ! Start(token)
+    /**
+     * Command line logic for server
+     */
+    private def run(): Unit = {
+        while (true) {
+            println("Next > ")
+            val command = readLine()
+            try
+                if (command.equalsIgnoreCase("stop")) {
+                    master ! Stop
+                } else if (command.equalsIgnoreCase("exit")) {
+                    System.exit(0)
+                } else if (command.equalsIgnoreCase("start")) {
+                    val token = Token(tokenId)
+                    master ! Start(token)
+                    tokenId = tokenId + 1
+                } else if (command.equalsIgnoreCase("report")) {
+                    master ! STATUS_REPORT
+                } else {
+                    println("Not a valid option. Please try again")
+                }
+            catch
+                case e: Exception => e.printStackTrace()
+        }
+    }
 
     /**
      * Generates a random date.

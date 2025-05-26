@@ -29,7 +29,7 @@ case class SetNextNode(nextNode: ActorRef) extends Message
  *
  * @param chunk the chunk to allocate to the [[Kiosk]]
  */
-case class SetChunk(chunk: Chunk) extends Message
+case class AllocateChunk(chunk: Chunk) extends Message
 
 /**
  * Start with a given [[Message]].
@@ -64,6 +64,13 @@ case class Order(order: Option[List[Ticket]]) extends Message
  */
 case class NeedMoreTickets(event: Event) extends Message
 
-case class DataRequest(data: DataType) extends Message
+case class STATUS_REPORT() extends Message
 
-case class DataResponse[T](obj: T) extends Message
+case class NEIGHBOR() extends Message
+case class NEIGHBOR_ACK(neighbor: ActorRef) extends Message
+
+case class CAN_SELL_QUERY(event: Event) extends Message
+case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
+
+case class TICKETS_REMAINING(event: Event) extends Message
+case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message

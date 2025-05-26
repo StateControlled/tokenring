@@ -1,6 +1,6 @@
 package application.server
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import application.core.{Chunk, Event}
 /**
  * A <code>Node</code> in the token ring system.
@@ -8,17 +8,21 @@ import application.core.{Chunk, Event}
  * @param id a unique id to identify this [[Kiosk]]
  * @see [[Master]]
  */
-class Kiosk(val id : Int) extends Actor {
+class Kiosk(val id : Int) extends Actor with ActorLogging {
     protected var nextNode: ActorRef = _
     private var eventTicketsOnSale: List[Chunk] = List.empty
 
     override def receive: Receive = {
         case SetNextNode(node) =>
             setNextNode(node)
-        case SetChunk(chunk) =>
+        case AllocateChunk(chunk) =>
             eventTicketsOnSale = chunk :: eventTicketsOnSale
+        case STATUS_REPORT =>
+            eventTicketsOnSale.foreach(chunk => {
+                log.info(s"Kiosk ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.ticketsRemaining} tickets remaining.")
+            })
         case token: Token =>
-            println(s"${context.self.path}, Kiosk $id received token ${token.id}")
+            log.info(s"${context.self.path}, Kiosk $id received token ${token.id}")
             process()
             nextNode ! token
         case Buy(amount: Int, event: Event) =>
@@ -33,8 +37,9 @@ class Kiosk(val id : Int) extends Actor {
             // TODO stop logic
     }
 
-    private def buy(): Unit = {
+    private def buy(): Boolean = {
         // TODO
+        false
     }
 
     private def check(chunk: Chunk): Boolean = {
@@ -49,20 +54,21 @@ class Kiosk(val id : Int) extends Actor {
     /**
      * @return  the [[ActorRef]] for this [[Kiosk]] neighbor node in the token-ring system
      */
-    def getNextNode: ActorRef = {
+    private def getNextNode: ActorRef = {
         nextNode
     }
 
+    /**
+     * Sets this [[Kiosk]] neighbor, the next node in a token-ring system.
+     *
+     * @param next  the node to become the neighbor
+     */
     private def setNextNode(next: ActorRef): Unit = {
         nextNode = next
     }
 
-    def getEventsOnSale: List[Chunk] = {
+    private def getEventsOnSale: List[Chunk] = {
         eventTicketsOnSale
-    }
-
-    override def toString: String = {
-        s"TK${context.self.path.name}-$id"
     }
 
 }

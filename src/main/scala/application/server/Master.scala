@@ -1,8 +1,8 @@
 package application.server
 
 import akka.actor.{ActorRef, Props}
-import com.typesafe.config.ConfigFactory
 import application.core.{Chunk, Event, Venue}
+import com.typesafe.config.ConfigFactory
 
 /**
  *
@@ -22,6 +22,24 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
     allocate()
 
     private def allocate(): Unit = {
+        // split the total capacity (total number of tickets for an event) across the given number of chunks
+        populateChunks()
+
+        log.info("Allocating Chunks To Kiosks...")
+        var i: Int = 0
+        kiosks.foreach(kiosk => {
+            // TODO allocate chunks to Kiosks
+            log.info(s"Allocating chunks to ${kiosk.toString}")
+            chunksToAllocate.foreach(list => {
+                kiosk ! AllocateChunk(list(i))
+                list(i).setIsAllocated(true)
+            })
+            i = i + 1
+        })
+    }
+
+    private def populateChunks(): Unit = {
+        log.info("Populating Chunks...")
         events.foreach(event => {
             val initialChunkAllocation = event.getCapacity / numberOfChunksPerEvent
             val remainder = event.getCapacity - (initialChunkAllocation * numberOfChunksPerEvent)
@@ -32,22 +50,16 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
             chunksToAllocate = chunkList :: chunksToAllocate
         })
 
-        println("Allocated Chunks...")
-        chunksToAllocate.foreach(cList => {
-            cList.foreach(c => {
-                println(c)
-            })
-        })
-
-        println("Allocated Chunks To Kiosks...")
-        kiosks.foreach(kiosk => {
-            // TODO allocate chunks to Kiosks
-            println(kiosk.toString)
-        })
-
+//        chunksToAllocate.foreach(chunkList => {
+//            log.info(s"Chunks for ${chunkList.head.event.getName}")
+//            chunkList.foreach(chunk => {
+//                log.info(chunk.toString)
+//            })
+//        })
     }
 
     private def initRing(): Unit = {
+        log.info("Creating Actors...")
         val node04 = context.actorOf(Props(classOf[Kiosk], 4), name = "node4")
         val node03 = context.actorOf(Props(classOf[Kiosk], 3), name = "node3")
         val node02 = context.actorOf(Props(classOf[Kiosk], 2), name = "node2")
@@ -66,9 +78,12 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         case SetNextNode(node) =>
             nextNode = node
         case token: Token =>
-            println(s"${context.self.path}, Master $id received token ${token.id}")
+            log.info(s"${context.self.path}, Master $id received token ${token.id}")
         case NeedMoreTickets(event: Event) =>
             sendChunk(event)
+        case STATUS_REPORT =>
+            log.info(s"${context.self.path}, Master $id")
+            kiosks.foreach(kiosk => kiosk ! STATUS_REPORT)
         case Start(token: Token) =>
             nextNode ! token
         case Stop =>
@@ -77,10 +92,6 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
 
     private def sendChunk(event: Event): Unit = {
         // TODO
-    }
-
-    override def toString: String = {
-        s"MASTER-${context.self.path.name}-$id"
     }
 
 }
