@@ -1,6 +1,6 @@
 package application.server
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import application.core.{CONCERT_HALL, Event, OUTDOOR, OUTDOOR_CONCERT_HALL, STADIUM, Venue}
 import com.typesafe.config.ConfigFactory
 
@@ -10,10 +10,10 @@ object TokenRing extends App {
     private val config = ConfigFactory.load()
 //    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
 
-    private val concertHall     = new Venue("Orchestra Hall", 120, CONCERT_HALL())
-    private val libertyStadium  = new Venue("Liberty Stadium", 140, STADIUM())
-    private val greenField      = new Venue("Green Field", 250, OUTDOOR())
-    private val outdoorStage    = new Venue("Outdoor Stage", 230, OUTDOOR_CONCERT_HALL())
+    private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
+    private val libertyStadium  = new Venue("Liberty Stadium", 300, STADIUM())
+    private val greenField      = new Venue("Green Field", 360, OUTDOOR())
+    private val outdoorStage    = new Venue("Outdoor Stage",360, OUTDOOR_CONCERT_HALL())
 
     /** List of all [[Venue]] */
     private val venueList = List(outdoorStage, greenField, libertyStadium, concertHall)
@@ -33,18 +33,22 @@ object TokenRing extends App {
     //**********************************************************************************//
     
     private val system = ActorSystem("TicketSelling")
-
-    private val node04 = system.actorOf(Props(classOf[Kiosk], 4), name="node4")
-    private val node03 = system.actorOf(Props(classOf[Kiosk], 3), name="node3")
-    private val node02 = system.actorOf(Props(classOf[Kiosk], 2), name="node2")
-    private val node01 = system.actorOf(Props(classOf[Kiosk], 1), name="node1")
+//    private var nodes: List[ActorRef] = List.empty
+//
+//    private val node04 = system.actorOf(Props(classOf[Kiosk], 4), name="node4")
+//    private val node03 = system.actorOf(Props(classOf[Kiosk], 3), name="node3")
+//    private val node02 = system.actorOf(Props(classOf[Kiosk], 2), name="node2")
+//    private val node01 = system.actorOf(Props(classOf[Kiosk], 1), name="node1")
     private val master = system.actorOf(Props(classOf[Master], 0, venueList, eventList), name="master")
+//
+//    nodes = node04 :: node03 :: node02 :: node01 :: nodes
 
     // Tell all actors what their neighbor node is
-    master ! SetNextNode(node01)
-    node01 ! SetNextNode(node02)
-    node02 ! SetNextNode(node03)
-    node03 ! SetNextNode(master)
+//    master ! SetNextNode(node01)
+//    node01 ! SetNextNode(node02)
+//    node02 ! SetNextNode(node03)
+//    node03 ! SetNextNode(node04)
+//    node04 ! SetNextNode(master)
 
     Thread.sleep(5000)
 

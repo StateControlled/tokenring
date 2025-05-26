@@ -32,20 +32,13 @@ case class SetNextNode(nextNode: ActorRef) extends Message
 case class SetChunk(chunk: Chunk) extends Message
 
 /**
- * A list of [[Chunk]]s to allocate to [[Kiosk]]s
- *
- * @param tickets   [[Chunks]] to allocate
- */
-case class TicketData(tickets: List[Chunk]) extends Message
-
-/**
  * Start with a given [[Message]].
  * @param msg   the message to pass
  */
 case class Start(msg: Message) extends Message
 
 /**
- * A Stop message
+ * A simple Stop message
  */
 case class Stop() extends Message
 
@@ -63,3 +56,14 @@ case class Buy(tickets: Int, event: Event) extends Message
  * @param order a list of purchased tickets
  */
 case class Order(order: Option[List[Ticket]]) extends Message
+
+/**
+ * For a [[Kiosk]] to alert the [[Master]] that it needs more tickets for an [[Event]]
+ *
+ * @param event the event
+ */
+case class NeedMoreTickets(event: Event) extends Message
+
+case class DataRequest(data: DataType) extends Message
+
+case class DataResponse[T](obj: T) extends Message

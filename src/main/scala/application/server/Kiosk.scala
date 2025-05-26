@@ -18,13 +18,27 @@ class Kiosk(val id : Int) extends Actor {
         case SetChunk(chunk) =>
             eventTicketsOnSale = chunk :: eventTicketsOnSale
         case token: Token =>
-            println(s"server.Kiosk $id received token ${token.id}")
+            println(s"${context.self.path}, Kiosk $id received token ${token.id}")
             process()
             nextNode ! token
         case Buy(amount: Int, event: Event) =>
             // TODO buy tickets
+            buy()
+            eventTicketsOnSale.foreach(chunk => {
+                if (!check(chunk)) {
+                    context.parent ! NeedMoreTickets(chunk.event)
+                }
+            })
         case Stop =>
             // TODO stop logic
+    }
+
+    private def buy(): Unit = {
+        // TODO
+    }
+
+    private def check(chunk: Chunk): Boolean = {
+        chunk.ticketsRemaining > 0
     }
 
     // TODO
@@ -45,6 +59,10 @@ class Kiosk(val id : Int) extends Actor {
 
     def getEventsOnSale: List[Chunk] = {
         eventTicketsOnSale
+    }
+
+    override def toString: String = {
+        s"TK${context.self.path.name}-$id"
     }
 
 }
