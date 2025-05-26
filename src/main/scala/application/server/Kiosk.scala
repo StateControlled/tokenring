@@ -11,7 +11,7 @@ import application.core.{Chunk, Event}
 class Kiosk(val id : Int) extends Actor with ActorLogging {
     protected var nextNode: ActorRef = _
     private var eventTicketsOnSale: List[Chunk] = List.empty
-
+    
     override def receive: Receive = {
         case SetNextNode(node) =>
             setNextNode(node)

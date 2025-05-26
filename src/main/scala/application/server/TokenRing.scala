@@ -2,15 +2,14 @@ package application.server
 
 import akka.actor.{ActorSystem, Props}
 import application.core.{CONCERT_HALL, Event, OUTDOOR, OUTDOOR_CONCERT_HALL, STADIUM, Venue}
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.StdIn.readLine
 import scala.util.Random
 
 object TokenRing extends App {
-    private val config = ConfigFactory.load()
-    private var tokenId = config.getInt("server.token.token-id")
-//    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
+    private val config: Config = ConfigFactory.load.getConfig("server")
+    private var tokenId = config.getInt("token.token-id")
 
     private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
     private val libertyStadium  = new Venue("Liberty Stadium", 300, STADIUM())
@@ -34,7 +33,7 @@ object TokenRing extends App {
 
     //**********************************************************************************//
     
-    private val system = ActorSystem("TicketSelling")
+    private val system = ActorSystem("TicketSelling", config)
     private val master = system.actorOf(Props(classOf[Master], 0, venueList, eventList), name="master")
 
     Thread.sleep(5000)

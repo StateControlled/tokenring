@@ -15,8 +15,8 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
 //    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
     private val numberOfChunksPerEvent = config.getInt("server.allocation.chunks-per-event")
     private var chunksToAllocate: List[List[Chunk]] = List.empty
-
     private var kiosks: List[ActorRef] = List.empty
+//    private var ports: Seq[String] = Seq("3030", "3031", "3032", "3033")
 
     initRing()
     allocate()
@@ -60,10 +60,11 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
 
     private def initRing(): Unit = {
         log.info("Creating Actors...")
-        val node04 = context.actorOf(Props(classOf[Kiosk], 4), name = "node4")
-        val node03 = context.actorOf(Props(classOf[Kiosk], 3), name = "node3")
-        val node02 = context.actorOf(Props(classOf[Kiosk], 2), name = "node2")
-        val node01 = context.actorOf(Props(classOf[Kiosk], 1), name = "node1")
+
+        val node04 = context.system.actorOf(Props(classOf[Kiosk], 4), name = "node4")
+        val node03 = context.system.actorOf(Props(classOf[Kiosk], 3), name = "node3")
+        val node02 = context.system.actorOf(Props(classOf[Kiosk], 2), name = "node2")
+        val node01 = context.system.actorOf(Props(classOf[Kiosk], 1), name = "node1")
 
         kiosks = node04 :: node03 :: node02 :: node01 :: kiosks
 
