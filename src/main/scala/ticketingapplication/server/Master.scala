@@ -1,10 +1,15 @@
 package ticketingapplication.server
 
-import akka.actor.Address
-import com.typesafe.config.ConfigFactory
 import ticketingapplication.ticket.{Event, Venue}
 
+/**
+ *
+ * @param id a unique id to identify this [[Kiosk]]
+ * @param venues
+ * @param events
+ */
 class Master(override val id : Int, venues: List[Venue], events: List[Event]) extends Kiosk(id) {
+
 
     override def receive: Receive = {
         case SetNextNode(node) =>
@@ -14,7 +19,5 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         case Start(token: Token) =>
             nextNode ! token
     }
-
-
 
 }

@@ -1,7 +1,7 @@
 package ticketingapplication.server
 
 import akka.actor.ActorRef
-import ticketingapplication.ticket.Ticket
+import ticketingapplication.ticket.{Chunk, Ticket}
 
 /**
  * Base for all messages which can be passed to a [[Kiosk]].
@@ -26,10 +26,15 @@ case class SetNextNode(nextNode: ActorRef) extends Message
 
 case class TicketData(ticket: Ticket) extends Message
 
+case class SetChunk(chunk: Chunk) extends Message
+
 /**
  * Start with a given [[Message]].
  * @param msg   the message to pass
  */
 case class Start(msg: Message) extends Message
 
+/**
+ * A Stop message
+ */
 case class Stop() extends Message

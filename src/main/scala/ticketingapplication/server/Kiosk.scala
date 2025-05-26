@@ -1,6 +1,7 @@
 package ticketingapplication.server
 
 import akka.actor.{Actor, ActorRef}
+import ticketingapplication.ticket.Chunk
 
 /**
  * A <code>Node</code> in the token ring system.
@@ -9,11 +10,14 @@ import akka.actor.{Actor, ActorRef}
  * @see [[Master]]
  */
 class Kiosk(val id : Int) extends Actor {
-    var nextNode: ActorRef = _
+    private var nextNode: ActorRef = _
+    private var eventTicketsOnSale: List[Chunk] = List.empty
 
     override def receive: Receive = {
         case SetNextNode(node) =>
             nextNode = node
+        case SetChunk(chunk) =>
+            eventTicketsOnSale = chunk :: eventTicketsOnSale
         case token: Token =>
             println(s"server.Kiosk $id received token ${token.id}")
             process()
