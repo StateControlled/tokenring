@@ -1,8 +1,8 @@
-package ticketingapplication.client
+package application.client
 
 import akka.actor.{Actor, Address}
 import com.typesafe.config.ConfigFactory
-import ticketingapplication.server.Token
+import application.server.Token
 
 class Client extends Actor {
     private val config = ConfigFactory.load()

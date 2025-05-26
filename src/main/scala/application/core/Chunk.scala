@@ -1,4 +1,6 @@
-package ticketingapplication.ticket
+package application.core
+
+import scala.util.Random
 
 /**
  * A chunk of tickets that may or may not be the total number of possible tickets on sale for an [[Event]]
@@ -7,6 +9,7 @@ package ticketingapplication.ticket
  * @param allocation    the number of tickets allocated to this chunk
  */
 class Chunk(val event: Event, var allocation: Int) {
+    private val id = uuid()
     private var ticketsSold = 0
 
     /**
@@ -47,6 +50,16 @@ class Chunk(val event: Event, var allocation: Int) {
 
     def getTicketsSold: Int = {
         ticketsSold
+    }
+
+    override def toString: String = {
+        s"Chunk $id: Allocated $allocation tickets for event \"${event.getName}\""
+    }
+
+    private def uuid(): String = {
+        val num = BigInt(40, Random())
+        val str: String = f"$num%012x"
+        s"C-${str.substring(0, 4)}-${str.substring(4)}"
     }
 
 }

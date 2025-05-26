@@ -1,4 +1,4 @@
-package ticketingapplication.ticket
+package application.core
 
 import scala.collection.mutable
 
