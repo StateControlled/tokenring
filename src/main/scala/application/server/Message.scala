@@ -64,13 +64,13 @@ case class Order(order: Option[List[Ticket]]) extends Message
  */
 case class NeedMoreTickets(event: Event) extends Message
 
-case class STATUS_REPORT() extends Message
+final case class STATUS_REPORT() extends Message
 
-case class NEIGHBOR() extends Message
-case class NEIGHBOR_ACK(neighbor: ActorRef) extends Message
+final case class NEIGHBOR() extends Message
+final case class NEIGHBOR_ACK(neighbor: ActorRef) extends Message
 
-case class CAN_SELL_QUERY(event: Event) extends Message
-case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
+final case class CAN_SELL_QUERY(event: Event) extends Message
+final case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
 
-case class TICKETS_REMAINING(event: Event) extends Message
-case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message
+final case class TICKETS_REMAINING(event: Event) extends Message
+final case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message

@@ -61,18 +61,18 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
     private def initRing(): Unit = {
         log.info("Creating Actors...")
 
-        val node04 = context.system.actorOf(Props(classOf[Kiosk], 4), name = "node4")
-        val node03 = context.system.actorOf(Props(classOf[Kiosk], 3), name = "node3")
-        val node02 = context.system.actorOf(Props(classOf[Kiosk], 2), name = "node2")
-        val node01 = context.system.actorOf(Props(classOf[Kiosk], 1), name = "node1")
+        val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = "kiosk4")
+        val kiosk3 = context.system.actorOf(Props(classOf[Kiosk], 3), name = "kiosk3")
+        val kiosk2 = context.system.actorOf(Props(classOf[Kiosk], 2), name = "kiosk2")
+        val kiosk1 = context.system.actorOf(Props(classOf[Kiosk], 1), name = "kiosk1")
 
-        kiosks = node04 :: node03 :: node02 :: node01 :: kiosks
+        kiosks = kiosk4 :: kiosk3 :: kiosk2 :: kiosk1 :: kiosks
 
-        nextNode = node01
-        node01 ! SetNextNode(node02)
-        node02 ! SetNextNode(node03)
-        node03 ! SetNextNode(node04)
-        node04 ! SetNextNode(context.self)
+        nextNode = kiosk1
+        kiosk1 ! SetNextNode(kiosk2)
+        kiosk2 ! SetNextNode(kiosk3)
+        kiosk3 ! SetNextNode(kiosk4)
+        kiosk4 ! SetNextNode(context.self)
     }
 
     override def receive: Receive = {

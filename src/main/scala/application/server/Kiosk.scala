@@ -17,9 +17,9 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             setNextNode(node)
         case AllocateChunk(chunk) =>
             eventTicketsOnSale = chunk :: eventTicketsOnSale
-        case STATUS_REPORT =>
+        case STATUS_REPORT() =>
             eventTicketsOnSale.foreach(chunk => {
-                log.info(s"Kiosk ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.ticketsRemaining} tickets remaining.")
+                log.info(s"STATUS Kiosk ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.ticketsRemaining} tickets remaining.")
             })
         case token: Token =>
             log.info(s"${context.self.path}, Kiosk $id received token ${token.id}")
@@ -33,6 +33,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
                     context.parent ! NeedMoreTickets(chunk.event)
                 }
             })
+        case message: String =>
+            println(s"${context.self.path.name} received (string) message: $message")
         case Stop =>
             // TODO stop logic
     }
