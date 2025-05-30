@@ -1,12 +1,12 @@
 package application.client
 
-import akka.actor.{ActorSelection, ActorSystem, Address}
-import application.server.STATUS_REPORT
+import akka.actor.{Actor, ActorSelection, ActorSystem, Address}
+import application.core.{EVENTS_QUERY, EVENTS_QUERY_ACK, STATUS_REPORT}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.StdIn.readLine
 
-object Client extends App {
+object Client extends App, Actor {
     private val config: Config          = ConfigFactory.load.getConfig("client")
     private val numberOfKiosks: Int     = ConfigFactory.load.getInt("server.allocation.number-of-kiosks")
     private val remoteAddress: Address  = setRemoteAddress()
@@ -51,7 +51,7 @@ object Client extends App {
     }
 
     private def listEvents(): Unit = {
-
+        master ! EVENTS_QUERY()
     }
 
     private def selectKiosk(): Unit = {
@@ -70,6 +70,15 @@ object Client extends App {
         println("Remote address set to " + remoteAddress.toString)
         // return
         remoteAddress
+    }
+
+    override def receive: Receive = {
+        case EVENTS_QUERY_ACK(eventsList) =>
+            printList(eventsList)
+    }
+
+    private def printList(list: List[Any]): Unit = {
+        list.foreach(e => println(e.toString))
     }
 
 }

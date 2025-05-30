@@ -1,7 +1,7 @@
 package application.server
 
 import akka.actor.{ActorRef, Props}
-import application.core.{Chunk, Event, Venue}
+import application.core.{AllocateChunk, Chunk, EVENTS_QUERY, EVENTS_QUERY_ACK, Event, NeedMoreTickets, STATUS_REPORT, SetNextNode, Start, Stop, Token, Venue}
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -86,6 +86,9 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         case STATUS_REPORT() =>
             log.info(s"${context.self.path}, Master $id")
             kiosks.foreach(kiosk => kiosk ! STATUS_REPORT())
+        case EVENTS_QUERY() =>
+            log.info(s"Received query from ${sender()}. Sending event info")
+            sender() ! EVENTS_QUERY_ACK(events)
         case Start(token: Token) =>
             nextNode ! token
         case Stop =>

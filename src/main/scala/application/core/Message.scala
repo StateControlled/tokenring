@@ -1,7 +1,7 @@
-package application.server
+package application.core
 
 import akka.actor.ActorRef
-import application.core.{Chunk, Event, Ticket}
+import application.server.{Kiosk, Master}
 
 /**
  * Base for all messages which can be passed to a [[Kiosk]].
