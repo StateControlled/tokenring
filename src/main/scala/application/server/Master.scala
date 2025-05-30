@@ -11,9 +11,10 @@ import com.typesafe.config.ConfigFactory
  * @param events    a list of [[Event]]
  */
 class Master(override val id : Int, venues: List[Venue], events: List[Event]) extends Kiosk(id) {
-    private val config = ConfigFactory.load()
+    private val config                  = ConfigFactory.load()
 //    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
-    private val numberOfChunksPerEvent = config.getInt("server.allocation.chunks-per-event")
+    private val numberOfChunksPerEvent  = config.getInt("server.allocation.chunks-per-event")
+    private val kioskName               = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[List[Chunk]] = List.empty
     private var kiosks: List[ActorRef] = List.empty
 //    private var ports: Seq[String] = Seq("3030", "3031", "3032", "3033")
@@ -61,10 +62,10 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
     private def initRing(): Unit = {
         log.info("Creating Actors...")
 
-        val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = "kiosk4")
-        val kiosk3 = context.system.actorOf(Props(classOf[Kiosk], 3), name = "kiosk3")
-        val kiosk2 = context.system.actorOf(Props(classOf[Kiosk], 2), name = "kiosk2")
-        val kiosk1 = context.system.actorOf(Props(classOf[Kiosk], 1), name = "kiosk1")
+        val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = s"${kioskName}4")
+        val kiosk3 = context.system.actorOf(Props(classOf[Kiosk], 3), name = s"${kioskName}3")
+        val kiosk2 = context.system.actorOf(Props(classOf[Kiosk], 2), name = s"${kioskName}2")
+        val kiosk1 = context.system.actorOf(Props(classOf[Kiosk], 1), name = s"${kioskName}1")
 
         kiosks = kiosk4 :: kiosk3 :: kiosk2 :: kiosk1 :: kiosks
 
@@ -82,9 +83,9 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
             log.info(s"${context.self.path}, Master $id received token ${token.id}")
         case NeedMoreTickets(event: Event) =>
             sendChunk(event)
-        case STATUS_REPORT =>
+        case STATUS_REPORT() =>
             log.info(s"${context.self.path}, Master $id")
-            kiosks.foreach(kiosk => kiosk ! STATUS_REPORT)
+            kiosks.foreach(kiosk => kiosk ! STATUS_REPORT())
         case Start(token: Token) =>
             nextNode ! token
         case Stop =>

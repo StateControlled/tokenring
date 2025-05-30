@@ -7,13 +7,17 @@ import com.typesafe.config.{Config, ConfigFactory}
 import scala.io.StdIn.readLine
 
 object Client extends App {
-    private val config: Config = ConfigFactory.load.getConfig("client")
-    private val numberOfKiosks: Int = ConfigFactory.load.getInt("server.allocation.number-of-kiosks")
-    private val remoteAddress: Address = setRemoteAddress()
-    private val system = ActorSystem("TicketSelling", config)
-    private var k = 1;
+    private val config: Config          = ConfigFactory.load.getConfig("client")
+    private val numberOfKiosks: Int     = ConfigFactory.load.getInt("server.allocation.number-of-kiosks")
+    private val remoteAddress: Address  = setRemoteAddress()
+    private val system  = ActorSystem("TicketSelling", config)
+    private var kioskId = 1
 
-    var kiosk: ActorSelection = system.actorSelection(s"$remoteAddress/user/kiosk$k")
+    private val masterName  = config.getString("server.naming.master-actor-name")
+    private val kioskName   = config.getString("server.naming.node-actor-name")
+
+    var kiosk: ActorSelection   = system.actorSelection(s"$remoteAddress/user/$kioskName$kioskId")
+    var master: ActorSelection  = system.actorSelection(s"$remoteAddress/user/$masterName")
 
     run()
 
@@ -26,9 +30,11 @@ object Client extends App {
                     println("Goodbye")
                     System.exit(0)
                 } else if (command.equalsIgnoreCase("report")) {
-                    kiosk ! STATUS_REPORT()
+                    master ! STATUS_REPORT()
                 } else if (command.equalsIgnoreCase("switch")) {
                     selectKiosk()
+                } else if (command.equalsIgnoreCase("list")) {
+                    listEvents()
                 } else if (command.equalsIgnoreCase("buy")) {
                     // TODO purchase logic
                 } else if (command.equalsIgnoreCase("message") || command.equalsIgnoreCase("msg")) {
@@ -44,12 +50,16 @@ object Client extends App {
         }
     }
 
+    private def listEvents(): Unit = {
+
+    }
+
     private def selectKiosk(): Unit = {
-        k = k + 1
-        if (k > numberOfKiosks) {
-            k = 1
+        kioskId = kioskId + 1
+        if (kioskId > numberOfKiosks) {
+            kioskId = 1
         }
-        kiosk = system.actorSelection(s"$remoteAddress/user/kiosk$k")
+        kiosk = system.actorSelection(s"$remoteAddress/user/kiosk$kioskId")
     }
 
     private def setRemoteAddress(): Address = {

@@ -8,8 +8,9 @@ import scala.io.StdIn.readLine
 import scala.util.Random
 
 object TokenRing extends App {
-    private val config: Config = ConfigFactory.load.getConfig("server")
-    private var tokenId = config.getInt("token.token-id")
+    private val config: Config  = ConfigFactory.load.getConfig("server")
+    private var tokenId         = config.getInt("token.token-id")
+    private val masterName      = config.getString("server.naming.master-actor-name")
 
     private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
     private val libertyStadium  = new Venue("Liberty Stadium", 300, STADIUM())
@@ -34,7 +35,7 @@ object TokenRing extends App {
     //**********************************************************************************//
     
     private val system = ActorSystem("TicketSelling", config)
-    private val master = system.actorOf(Props(classOf[Master], 0, venueList, eventList), name="master")
+    private val master = system.actorOf(Props(classOf[Master], 0, venueList, eventList), name=s"$masterName")
 
     Thread.sleep(5000)
 

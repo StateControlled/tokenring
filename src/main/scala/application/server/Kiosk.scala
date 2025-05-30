@@ -21,6 +21,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             eventTicketsOnSale.foreach(chunk => {
                 log.info(s"STATUS Kiosk ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.ticketsRemaining} tickets remaining.")
             })
+            sender() ! STATUS_REPORT_ACK(s"STATUS Kiosk ${context.self.path.name} is online.")
         case token: Token =>
             log.info(s"${context.self.path}, Kiosk $id received token ${token.id}")
             process()
