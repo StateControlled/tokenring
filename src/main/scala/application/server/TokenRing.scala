@@ -10,7 +10,7 @@ import scala.util.Random
 object TokenRing extends App {
     private val config: Config  = ConfigFactory.load.getConfig("server")
     private var tokenId         = config.getInt("token.token-id")
-    private val masterName      = config.getString("server.naming.master-actor-name")
+    private val masterName      = config.getString("naming.master-actor-name")
 
     private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
     private val libertyStadium  = new Venue("Liberty Stadium", 300, STADIUM())

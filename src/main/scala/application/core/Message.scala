@@ -1,10 +1,9 @@
 package application.core
 
 import akka.actor.ActorRef
-import application.server.{Kiosk, Master}
 
 /**
- * Base for all messages which can be passed to a [[Kiosk]].
+ * Base for all messages which can be passed to a [[application.server.Kiosk]].
  *
  * @see <a href="https://www.tutorialspoint.com/scala/scala_sealed_trait.htm">Sealed Trait</a> <br>
  *      <a href="https://docs.scala-lang.org/tour/case-classes.html">Case Class</a>
@@ -18,16 +17,16 @@ sealed trait Message
 case class Token(id: Int) extends Message
 
 /**
- * Specifically for setting a [[Kiosk]]'s neighbor.
+ * Specifically for setting a [[application.server.Kiosk]]'s neighbor.
  *
- * @param nextNode the next [[Kiosk]] in the ring
+ * @param nextNode the next [[application.server.Kiosk]] in the ring
  */
 case class SetNextNode(nextNode: ActorRef) extends Message
 
 /**
- * Specifically for allocating a chunk of tickets to a [[Kiosk]]
+ * Specifically for allocating a chunk of tickets to a [[application.server.Kiosk]]
  *
- * @param chunk the chunk to allocate to the [[Kiosk]]
+ * @param chunk the chunk to allocate to the [[application.server.Kiosk]]
  */
 case class AllocateChunk(chunk: Chunk) extends Message
 
@@ -58,7 +57,7 @@ case class Buy(tickets: Int, event: Event) extends Message
 case class Order(order: Option[List[Ticket]]) extends Message
 
 /**
- * For a [[Kiosk]] to alert the [[Master]] that it needs more tickets for an [[Event]]
+ * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
  *
  * @param event the event
  */
@@ -78,3 +77,5 @@ final case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Mes
 
 final case class EVENTS_QUERY() extends Message
 final case class EVENTS_QUERY_ACK(events: List[Event]) extends Message
+
+final case class SWITCH() extends Message
