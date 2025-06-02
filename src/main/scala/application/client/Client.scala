@@ -1,7 +1,7 @@
 package application.client
 
 import akka.actor.{Actor, ActorSelection, ActorSystem, Address}
-import application.core.{EVENTS_QUERY, EVENTS_QUERY_ACK, STATUS_REPORT, SWITCH}
+import application.core.*
 import com.typesafe.config.{Config, ConfigFactory}
 
 class Client extends Actor {
@@ -28,6 +28,10 @@ class Client extends Actor {
     }
 
     override def receive: Receive = {
+        case BUY(ticketQuantity: Int, title: String) =>
+            kiosk ! BUY(ticketQuantity, title)
+        case EVENT_DOES_NOT_EXIST(title: String) =>
+            println(s"The event $title does not exist.")
         case STATUS_REPORT() =>
             statusReport()
         case EVENTS_QUERY() =>
@@ -36,10 +40,14 @@ class Client extends Actor {
             printList(eventsList)
         case SWITCH() =>
             selectKiosk()
+        case ORDER(tickets: List[Ticket]) =>
+            println("Order successful!")
         case msg: String =>
             println("Received message: " + msg)
             println("Forwarding message to kiosk...")
             kiosk ! msg
+        case _ =>
+            println("Unhandled message");
     }
 
     private def statusReport(): Unit = {

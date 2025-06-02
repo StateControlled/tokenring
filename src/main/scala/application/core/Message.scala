@@ -14,68 +14,71 @@ sealed trait Message
  * A token that is to be passed around the ring. Only Actors with the token may execute certain operations.
  * @param id    a unique id to identify this token
  */
-case class Token(id: Int) extends Message
+case class TOKEN(id: Int) extends Message
 
 /**
  * Specifically for setting a [[application.server.Kiosk]]'s neighbor.
  *
  * @param nextNode the next [[application.server.Kiosk]] in the ring
  */
-case class SetNextNode(nextNode: ActorRef) extends Message
+case class SET_NEXT_NODE(nextNode: ActorRef) extends Message
+case class SET_MASTER(master: ActorRef) extends Message
 
 /**
  * Specifically for allocating a chunk of tickets to a [[application.server.Kiosk]]
  *
  * @param chunk the chunk to allocate to the [[application.server.Kiosk]]
  */
-case class AllocateChunk(chunk: Chunk) extends Message
+case class ALLOCATE_CHUNK(chunk: Chunk) extends Message
 
 /**
  * Start with a given [[Message]].
  * @param msg   the message to pass
  */
-case class Start(msg: Message) extends Message
+case class START(msg: Message) extends Message
 
 /**
  * A simple Stop message
  */
-case class Stop() extends Message
+case class STOP() extends Message
 
 /**
  * A message that indicates a client would like to purchase tickets for the given event.
  *
- * @param tickets   the desired number of tickets
- * @param event     the event
+ * @param ticketQuantity    the desired number of tickets
+ * @param eventName             the event
  */
-case class Buy(tickets: Int, event: Event) extends Message
-
-/**
- * Order confirmation to send back to a client.
- *
- * @param order a list of purchased tickets
- */
-case class Order(order: Option[List[Ticket]]) extends Message
+case class BUY(ticketQuantity: Int, eventName: String) extends Message
 
 /**
  * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
  *
  * @param event the event
  */
-case class NeedMoreTickets(event: Event) extends Message
+case class NEED_MORE_TICKETS(event: Event) extends Message
 
-final case class STATUS_REPORT() extends Message
-final case class STATUS_REPORT_ACK(response: String) extends Message
+case class STATUS_REPORT() extends Message
+case class STATUS_REPORT_ACK(response: String) extends Message
 
-final case class NEIGHBOR() extends Message
-final case class NEIGHBOR_ACK(neighbor: ActorRef) extends Message
+case class CAN_SELL_QUERY(event: Event) extends Message
+case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
 
-final case class CAN_SELL_QUERY(event: Event) extends Message
-final case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
+case class TICKETS_REMAINING(event: Event) extends Message
+case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message
 
-final case class TICKETS_REMAINING(event: Event) extends Message
-final case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message
+case class EVENTS_QUERY() extends Message
+case class EVENTS_QUERY_ACK(events: List[Event]) extends Message
 
-final case class EVENTS_QUERY() extends Message
-final case class EVENTS_QUERY_ACK(events: List[Event]) extends Message
+case class SWITCH() extends Message
 
-final case class SWITCH() extends Message
+case class EVENT_EXIST_QUERY(eventTitle: String) extends Message
+case class EVENT_EXIST_ACK(exists: Boolean) extends Message
+
+case class EVENT_DOES_NOT_EXIST(title: String) extends Message
+
+/**
+ * An order containing the tickets from a purchase.
+ *
+ * @param order a list of tickets
+ */
+case class ORDER(order: List[Ticket]) extends Message

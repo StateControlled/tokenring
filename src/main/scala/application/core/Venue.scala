@@ -6,7 +6,7 @@ package application.core
  * @param name      the venue name
  * @param capacity  the maximum capacity of the venue
  */
-class Venue(val name: String, val capacity: Int, val venueType: Classification) {
+class Venue(val name: String, val capacity: Int) {
     /**
      * @return  the maximum capacity of this [[Venue]]
      */
@@ -19,10 +19,6 @@ class Venue(val name: String, val capacity: Int, val venueType: Classification) 
      */
     def getName: String = {
         name
-    }
-
-    def getClassification: Classification = {
-        venueType
     }
 
 }

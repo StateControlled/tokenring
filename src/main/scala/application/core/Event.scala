@@ -68,7 +68,7 @@ class Event(val name: String, val venue: Venue, val date: String) {
         venue
     }
 
-    def getEventDate: String = {
+    def getDate: String = {
         date
     }
 

@@ -6,38 +6,54 @@ import scala.util.Random
  * A chunk of tickets that may or may not be the total number of possible tickets on sale for an [[Event]]
  *
  * @param event         the [[Event]]
- * @param allocation    the number of tickets allocated to this chunk
+ * @param allocation    the initial number of tickets allocated to this chunk
  */
 class Chunk(val event: Event, var allocation: Int) {
     private val id = uuid()
     private var ticketsSold = 0
+    private var ticketsRemain = allocation
     private var allocated: Boolean = false
 
     /**
-     * Adjusts the number of tickets sold by the specified amount. <br>
-     * A negative number will reduce the number of tickets sold to a minimum of zero.
+     * Adjusts the number of tickets sold by the specified amount. Returns the number of tickets taken from this chunk:
+     * this is the amount, if enough tickets remain, or if there are not enough tickets, it returns the number of tickets
+     * actually taken.
      *
-     * @param amount    the number of tickets to sell
-     * @return          <code>true</code> if there are enough tickets in the portion to complete the transaction.
+     * @param amount    the number of tickets to take
+     * @return          the number of tickets taken from this chunk
      */
-    def take(amount: Int): Boolean = {
-        if (ticketsSold + amount < allocation) {
-            if (ticketsSold + amount < 0) {
-                ticketsSold = 0
-            } else {
-                ticketsSold = ticketsSold + amount
-            }
-            true
+    def take(amount: Int): Int = {
+        if (amount < ticketsRemain) {
+            ticketsSold = ticketsSold + amount
+            ticketsRemain = ticketsRemain - amount
+            amount
         } else {
-            false
+            // ticketsRemain < amount
+            val result = ticketsRemain
+            ticketsSold = ticketsSold + ticketsRemain
+            ticketsRemain = 0
+            result
         }
+    }
+
+    def add(amount: Int): Boolean = {
+        ticketsRemain = ticketsRemain + amount
+        false
+    }
+
+    def getEventName: String = {
+        event.name
     }
 
     /**
      * @return  the [[Event]] this chunk of tickets is for
      */
-    def getVenue: Event = {
+    def getEvent: Event = {
         event
+    }
+
+    def getVenue: Venue = {
+        event.venue
     }
 
     /**
@@ -45,8 +61,8 @@ class Chunk(val event: Event, var allocation: Int) {
      *
      * @return  the number of tickets remaining in the chunk
      */
-    def ticketsRemaining: Int = {
-        allocation - ticketsSold
+    def getTicketsRemaining: Int = {
+        ticketsRemain
     }
 
     def getTicketsSold: Int = {

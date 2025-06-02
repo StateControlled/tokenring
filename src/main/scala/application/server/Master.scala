@@ -1,7 +1,7 @@
 package application.server
 
 import akka.actor.{ActorRef, Props}
-import application.core.{AllocateChunk, Chunk, EVENTS_QUERY, EVENTS_QUERY_ACK, Event, NeedMoreTickets, STATUS_REPORT, SetNextNode, Start, Stop, Token, Venue}
+import application.core.*
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -32,7 +32,7 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
             // TODO allocate chunks to Kiosks
             log.info(s"Allocating chunks to ${kiosk.toString}")
             chunksToAllocate.foreach(list => {
-                kiosk ! AllocateChunk(list(i))
+                kiosk ! ALLOCATE_CHUNK(list(i))
                 list(i).setIsAllocated(true)
             })
             i = i + 1
@@ -70,18 +70,20 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         kiosks = kiosk4 :: kiosk3 :: kiosk2 :: kiosk1 :: kiosks
 
         nextNode = kiosk1
-        kiosk1 ! SetNextNode(kiosk2)
-        kiosk2 ! SetNextNode(kiosk3)
-        kiosk3 ! SetNextNode(kiosk4)
-        kiosk4 ! SetNextNode(context.self)
+        kiosk1 ! SET_NEXT_NODE(kiosk2)
+        kiosk2 ! SET_NEXT_NODE(kiosk3)
+        kiosk3 ! SET_NEXT_NODE(kiosk4)
+        kiosk4 ! SET_NEXT_NODE(context.self)
+
+        kiosks.foreach(kiosk => kiosk ! SET_MASTER(context.self))
     }
 
     override def receive: Receive = {
-        case SetNextNode(node) =>
+        case SET_NEXT_NODE(node) =>
             nextNode = node
-        case token: Token =>
+        case token: TOKEN =>
             log.info(s"${context.self.path}, Master $id received token ${token.id}")
-        case NeedMoreTickets(event: Event) =>
+        case NEED_MORE_TICKETS(event: Event) =>
             sendChunk(event)
         case STATUS_REPORT() =>
             log.info(s"${context.self.path}, Master $id")
@@ -89,14 +91,15 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
         case EVENTS_QUERY() =>
             log.info(s"Received query from ${sender()}. Sending event info")
             sender() ! EVENTS_QUERY_ACK(events)
-        case Start(token: Token) =>
+        case START(token: TOKEN) =>
             nextNode ! token
-        case Stop =>
+        case STOP =>
             context.system.terminate()
     }
 
     private def sendChunk(event: Event): Unit = {
         // TODO
+        kiosks.foreach(kiosk => kiosk ! NEED_MORE_TICKETS(event))
     }
 
 }

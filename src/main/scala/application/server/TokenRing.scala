@@ -1,7 +1,7 @@
 package application.server
 
 import akka.actor.{ActorSystem, Props}
-import application.core.{CONCERT_HALL, Event, OUTDOOR, OUTDOOR_CONCERT_HALL, STADIUM, STATUS_REPORT, Start, Stop, Token, Venue}
+import application.core.*
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.StdIn.readLine
@@ -12,10 +12,10 @@ object TokenRing extends App {
     private var tokenId         = config.getInt("token.token-id")
     private val masterName      = config.getString("naming.master-actor-name")
 
-    private val concertHall     = new Venue("Orchestra Hall", 240, CONCERT_HALL())
-    private val libertyStadium  = new Venue("Liberty Stadium", 300, STADIUM())
-    private val greenField      = new Venue("Green Field", 360, OUTDOOR())
-    private val outdoorStage    = new Venue("Outdoor Stage",360, OUTDOOR_CONCERT_HALL())
+    private val concertHall     = new Venue("Orchestra Hall", 240)
+    private val libertyStadium  = new Venue("Liberty Stadium", 300)
+    private val greenField      = new Venue("Green Field", 360)
+    private val outdoorStage    = new Venue("Outdoor Stage",360)
 
     /** List of all [[Venue]] */
     private val venueList = List(outdoorStage, greenField, libertyStadium, concertHall)
@@ -50,12 +50,12 @@ object TokenRing extends App {
             val command = readLine()
             try
                 if (command.equalsIgnoreCase("stop")) {
-                    master ! Stop
+                    master ! STOP
                 } else if (command.equalsIgnoreCase("exit")) {
                     System.exit(0)
                 } else if (command.equalsIgnoreCase("start")) {
-                    val token = Token(tokenId)
-                    master ! Start(token)
+                    val token = TOKEN(tokenId)
+                    master ! START(token)
                     tokenId = tokenId + 1
                 } else if (command.equalsIgnoreCase("report")) {
                     master ! STATUS_REPORT
