@@ -7,10 +7,9 @@ import com.typesafe.config.ConfigFactory
 /**
  *
  * @param id a unique id to identify this [[Kiosk]]
- * @param venues    a list of [[Venue]]
  * @param events    a list of [[Event]]
  */
-class Master(override val id : Int, venues: List[Venue], events: List[Event]) extends Kiosk(id) {
+class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val config                  = ConfigFactory.load()
 //    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
     private val numberOfChunksPerEvent  = config.getInt("server.allocation.chunks-per-event")
