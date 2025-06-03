@@ -40,7 +40,7 @@ case class START(msg: Message) extends Message
 /**
  * A simple Stop message
  */
-case class STOP() extends Message
+case object STOP extends Message
 
 /**
  * A message that indicates a client would like to purchase tickets for the given event.
@@ -60,19 +60,10 @@ case class NEED_MORE_TICKETS(event: Event) extends Message
 case class STATUS_REPORT() extends Message
 case class STATUS_REPORT_ACK(response: String) extends Message
 
-case class CAN_SELL_QUERY(event: Event) extends Message
-case class CAN_SELL_ACK(event: Event, canSell: Boolean) extends Message
-
-case class TICKETS_REMAINING(event: Event) extends Message
-case class TICKETS_REMAINING_ACK(event: Event, remaining: Int) extends Message
-
 case class EVENTS_QUERY() extends Message
 case class EVENTS_QUERY_ACK(events: List[Event]) extends Message
 
-case class SWITCH() extends Message
-
-case class EVENT_EXIST_QUERY(eventTitle: String) extends Message
-case class EVENT_EXIST_ACK(exists: Boolean) extends Message
+case object SWITCH extends Message
 
 case class EVENT_DOES_NOT_EXIST(title: String) extends Message
 

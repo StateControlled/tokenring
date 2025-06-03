@@ -40,14 +40,16 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
     }
 
     private def populateChunks(): Unit = {
+        var section: String = "A"
         log.info("Populating Chunks...")
         events.foreach(event => {
             val initialChunkAllocation = event.getCapacity / numberOfChunksPerEvent
             val remainder = event.getCapacity - (initialChunkAllocation * numberOfChunksPerEvent)
-            var chunkList: List[Chunk] = (1 to numberOfChunksPerEvent).toList.map(i => new Chunk(event, initialChunkAllocation))
+            var chunkList: List[Chunk] = (1 to numberOfChunksPerEvent).toList.map(i => new Chunk(event, initialChunkAllocation, section))
             if (remainder > 0) {
-                chunkList = new Chunk(event, remainder) :: chunkList
+                chunkList = new Chunk(event, remainder, section) :: chunkList
             }
+            section = nextSection(section)
             chunksToAllocate = chunkList :: chunksToAllocate
         })
 
@@ -57,6 +59,12 @@ class Master(override val id : Int, venues: List[Venue], events: List[Event]) ex
 //                log.info(chunk.toString)
 //            })
 //        })
+    }
+
+    private def nextSection(section: String): String = {
+        val c: Char = section.charAt(0)
+        val d = c.+(1)
+        s"${d.toChar}"
     }
 
     private def initRing(): Unit = {

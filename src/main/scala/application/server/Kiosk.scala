@@ -29,7 +29,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             nextNode ! token
         case NEED_MORE_TICKETS(event: Event) =>
             // TODO
-            val e: Option[Chunk] = eventExists(event.getName)
+            val e: Option[Chunk] = eventExists(event.name)
             if (check(e.get)) {
 
             }
@@ -41,12 +41,12 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
                 var ticketOrder: List[Ticket] = tryBuy(amount, e.get)
                 if (ticketOrder.length == amount) {
                     // order succeeds with complete number of tickets
-                    afterBuy()
+//                    afterBuy()
                     sender() ! ORDER(ticketOrder)
                 } else {
                     // TODO query other kiosks for tickets
                     // if there are none, send failure message
-                    master ! NEED_MORE_TICKETS(e.get.getEvent)
+                    master ! NEED_MORE_TICKETS(e.get.event)
                 }
             } else {
                 // no such option exists, no event
@@ -54,16 +54,14 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             }
         case message: String =>
             println(s"${context.self.path.name} received (string) message: $message")
-        case STOP =>
-            // TODO stop logic
     }
 
     private def tryBuy(amount: Int, chunk: Chunk): List[Ticket] = {
         val sold = chunk.take(amount)
         if (sold == amount) {
-            return List.fill(amount)(new Ticket(chunk.getVenue.getName, chunk.getEvent.getName, chunk.getEvent.getDate))
+            return List.fill(amount)(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.nextSeatNumber}"))
         } else {
-            return List.fill(sold)(new Ticket(chunk.getVenue.getName, chunk.getEvent.getName, chunk.getEvent.getDate))
+            return List.fill(sold)(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.nextSeatNumber}"))
         }
     }
 

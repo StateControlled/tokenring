@@ -35,10 +35,10 @@ class Client extends Actor {
         case STATUS_REPORT() =>
             statusReport()
         case EVENTS_QUERY() =>
-            listEvents()
+            requestEvents()
         case EVENTS_QUERY_ACK(eventsList) =>
             printList(eventsList)
-        case SWITCH() =>
+        case SWITCH =>
             selectKiosk()
         case ORDER(tickets: List[Ticket]) =>
             println("Order successful!")
@@ -54,7 +54,7 @@ class Client extends Actor {
         master ! STATUS_REPORT()
     }
 
-    private def listEvents(): Unit = {
+    private def requestEvents(): Unit = {
         master ! EVENTS_QUERY()
     }
 

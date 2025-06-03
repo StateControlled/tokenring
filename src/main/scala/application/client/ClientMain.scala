@@ -32,7 +32,7 @@ object ClientMain extends App {
                 } else if (command.equalsIgnoreCase("report")) {
                     client ! STATUS_REPORT()
                 } else if (command.equalsIgnoreCase("switch")) {
-                    client ! SWITCH()
+                    client ! SWITCH
                 } else if (command.equalsIgnoreCase("list")) {
                     client ! EVENTS_QUERY()
                 } else if (command.equalsIgnoreCase("buy")) {

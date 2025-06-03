@@ -7,27 +7,30 @@ import com.typesafe.config.{Config, ConfigFactory}
 import scala.io.StdIn.readLine
 import scala.util.Random
 
-object TokenRing extends App {
+/**
+ * Initializes [[Event Events]] then initializes a [[Master]] which will, in turn, initialize [[Kiosk Kiosks]]
+ */
+object Server extends App {
     private val config: Config  = ConfigFactory.load.getConfig("server")
     private var tokenId         = config.getInt("token.token-id")
     private val masterName      = config.getString("naming.master-actor-name")
 
-    private val concertHall     = new Venue("Orchestra Hall", 240)
-    private val libertyStadium  = new Venue("Liberty Stadium", 300)
-    private val greenField      = new Venue("Green Field", 360)
-    private val outdoorStage    = new Venue("Outdoor Stage",360)
+    private val concertHall     = Venue("Orchestra Hall", 240)
+    private val libertyStadium  = Venue("Liberty Stadium", 300)
+    private val greenField      = Venue("Green Field", 360)
+    private val outdoorStage    = Venue("Outdoor Stage", 360)
 
     /** List of all [[Venue]] */
     private val venueList = List(outdoorStage, greenField, libertyStadium, concertHall)
 
-    private val boyBand         = new Event("BoyBand Concert", libertyStadium, randomDate())
-    private val kpop            = new Event("Kpop Concert", libertyStadium, randomDate())
-    private val charityRun      = new Event("Charity Fun Run", greenField, randomDate())
-    private val sportsGame      = new Event("Sports Game", greenField, randomDate())
-    private val classicalMusic  = new Event("Symphony Concert", concertHall, randomDate())
-    private val violinHero      = new Event("Famous Violinist Plays", concertHall, randomDate())
-    private val rockMusic       = new Event("Awesome Band Concert", outdoorStage, randomDate())
-    private val jazzBand        = new Event("Smooth Jazz", outdoorStage, randomDate())
+    private val boyBand         = Event("BoyBand Concert", libertyStadium, randomDate())
+    private val kpop            = Event("Kpop Concert", libertyStadium, randomDate())
+    private val charityRun      = Event("Charity Fun Run", greenField, randomDate())
+    private val sportsGame      = Event("Sports Game", greenField, randomDate())
+    private val classicalMusic  = Event("Symphony Concert", concertHall, randomDate())
+    private val violinHero      = Event("Famous Violinist Plays", concertHall, randomDate())
+    private val rockMusic       = Event("Awesome Band Concert", outdoorStage, randomDate())
+    private val jazzBand        = Event("Smooth Jazz", outdoorStage, randomDate())
 
     /** List of all [[Event]] */
     private val eventList = List(boyBand, kpop, charityRun, sportsGame, classicalMusic, violinHero, rockMusic, jazzBand)
