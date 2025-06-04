@@ -27,7 +27,7 @@ object CustomFileWriter extends App {
 
     private def writeData(): Unit = {
         val json: String = upickle.default.write(eventList)
-        os.write(os.pwd / "events.json", json)
+        os.write(os.pwd / "test_events.json", json)
     }
 
 }

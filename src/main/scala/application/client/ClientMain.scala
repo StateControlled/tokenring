@@ -13,35 +13,32 @@ import scala.util.Try
  */
 object ClientMain extends App {
     private val config: Config = ConfigFactory.load.getConfig("client")
-
     private val system = ActorSystem("TicketSelling", config)
-
     private val client = system.actorOf(Props[Client](), name="client")
 
     run()
 
+    /**
+     * The command-line interface for the Client
+     */
     private def run(): Unit = {
         while (true) {
             println("Next > ")
             val command = readLine()
             try
                 if (command.equalsIgnoreCase("exit")) {
-                    println("Goodbye")
-                    system.terminate()
-                    System.exit(0)
+                    exit()
                 } else if (command.equalsIgnoreCase("report")) {
-                    client ! STATUS_REPORT()
+                    sendStatusQuery()
                 } else if (command.equalsIgnoreCase("switch")) {
-                    client ! SWITCH
+                    sendSwitchCommand()
                 } else if (command.equalsIgnoreCase("list")) {
-                    client ! EVENTS_QUERY()
+                    sendEventsQuery()
                 } else if (command.equalsIgnoreCase("buy")) {
                     // TODO purchase logic
                     sendBuyRequest()
                 } else if (command.equalsIgnoreCase("message")) {
-                    println("Message > ")
-                    val message = readLine()
-                    client ! message
+                    sendString()
                 } else {
                     println("Not a valid option. Please try again")
                 }
@@ -49,6 +46,30 @@ object ClientMain extends App {
                 case e: Exception =>
                     e.printStackTrace()
         }
+    }
+
+    private def sendString(): Unit = {
+        println("Message > ")
+        val message = readLine()
+        client ! message
+    }
+
+    private def exit(): Unit = {
+        println("Goodbye")
+        system.terminate()
+        System.exit(0)
+    }
+
+    private def sendEventsQuery(): Unit = {
+        client ! EVENTS_QUERY()
+    }
+
+    private def sendSwitchCommand(): Unit = {
+        client ! SWITCH
+    }
+
+    private def sendStatusQuery(): Unit = {
+        client ! STATUS_REPORT()
     }
 
     /**
@@ -62,6 +83,9 @@ object ClientMain extends App {
         val quantity = tryToInt(ticketQuantity)
         if (quantity.isDefined) {
             client ! BUY(quantity.get, eventTitle)
+        } else {
+            println("Could not parse command.")
+            println("Please try again.")
         }
     }
 

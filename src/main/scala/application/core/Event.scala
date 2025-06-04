@@ -11,4 +11,9 @@ case class Event(name: String, venue: Venue, date: String) derives ReadWriter {
     def getCapacity: Int = {
         venue.capacity
     }
+
+    override def toString: String = {
+        s"EVENT NAME: $name, LOCATION: ${venue.name}, DATE: $date"
+    }
+
 }

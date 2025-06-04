@@ -95,6 +95,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         case STATUS_REPORT() =>
             log.info(s"${context.self.path}, Master $id")
             kiosks.foreach(kiosk => kiosk ! STATUS_REPORT())
+        case STATUS_REPORT_ACK(ack) =>
+            println(ack)
         case EVENTS_QUERY() =>
             log.info(s"Received query from ${sender()}. Sending event info")
             sender() ! EVENTS_QUERY_ACK(events)

@@ -15,6 +15,7 @@ object Server extends App {
     private var tokenId         = config.getInt("token.token-id")
     private val masterName      = config.getString("naming.master-actor-name")
 
+    // Read events from file then send to Master for allocation.
     /** List of all [[Event Events]] */
     private val eventList = readData()
     eventList.foreach(event => println(event))
@@ -37,21 +38,37 @@ object Server extends App {
             val command = readLine()
             try
                 if (command.equalsIgnoreCase("stop")) {
-                    master ! STOP
+                    stop()
                 } else if (command.equalsIgnoreCase("exit")) {
-                    System.exit(0)
+                    shutdown()
                 } else if (command.equalsIgnoreCase("start")) {
-                    val token = TOKEN(tokenId)
-                    master ! START(token)
-                    tokenId = tokenId + 1
+                    passToken()
                 } else if (command.equalsIgnoreCase("report")) {
-                    master ! STATUS_REPORT
+                    statusReport()
                 } else {
                     println("Not a valid option. Please try again")
                 }
             catch
                 case e: Exception => e.printStackTrace()
         }
+    }
+
+    private def shutdown(): Unit = {
+        System.exit(0)
+    }
+
+    private def stop(): Unit = {
+        master ! STOP
+    }
+
+    private def statusReport(): Unit = {
+        master ! STATUS_REPORT
+    }
+
+    private def passToken(): Unit = {
+        val token = TOKEN(tokenId)
+        master ! START(token)
+        tokenId = tokenId + 1
     }
 
     /**
@@ -70,6 +87,7 @@ object Server extends App {
 
         // deserialize json string
         val list: List[Event] = upickle.default.read[List[Event]](jsonString)
+        println("[Server] Loaded events from disk")
         list
     }
 
