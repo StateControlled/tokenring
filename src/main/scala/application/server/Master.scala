@@ -16,7 +16,6 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val kioskName               = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[List[Chunk]] = List.empty
     private var kiosks: List[ActorRef] = List.empty
-//    private var ports: Seq[String] = Seq("3030", "3031", "3032", "3033")
 
     initRing()
     allocate()

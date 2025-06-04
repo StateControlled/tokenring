@@ -60,10 +60,21 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     private def tryTakeTickets(amount: Int, chunk: Chunk): List[Ticket] = {
         val sold = chunk.take(amount)
         if (sold == amount) {
-            return List.fill(amount)(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.nextSeatNumber}"))
+            println(s"Sold $sold tickets for ${chunk.getEventName}")
+            return makeTicketOrder(amount, chunk)
         } else {
-            return List.fill(sold)(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.nextSeatNumber}"))
+            println(s"Sold $sold tickets for ${chunk.getEventName}")
+            return makeTicketOrder(amount, chunk)
         }
+    }
+
+    private def makeTicketOrder(amount: Int, chunk: Chunk): List[Ticket] = {
+        var result: List[Ticket] = List.empty
+
+        for (t <- 1 to amount)
+            result = Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}$t") :: result
+
+        result
     }
 
     /**
