@@ -7,6 +7,7 @@ lazy val commonSettings = Seq(
     libraryDependencies += "com.typesafe.akka" %% "akka-actor" % akkaVersion,
     libraryDependencies += "com.typesafe.akka" %% "akka-remote" % akkaVersion,
     libraryDependencies += "org.scala-lang" %% "toolkit" % "0.7.0",
+    libraryDependencies += "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
     libraryDependencies += "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion
 
 )

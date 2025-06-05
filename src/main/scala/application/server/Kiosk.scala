@@ -1,6 +1,8 @@
 package application.server
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.cluster.Cluster
+import akka.cluster.ClusterEvent.{CurrentClusterState, InitialStateAsEvents, MemberEvent, MemberRemoved, MemberUp, UnreachableMember}
 import application.core.*
 /**
  * A <code>Node</code> in the token ring system.
@@ -12,8 +14,36 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     protected var nextNode: ActorRef = _
     protected var master: ActorRef = _
     private var eventTicketsOnSale: List[Chunk] = List.empty
+    private val cluster: Cluster = Cluster(context.system)
+
+    override def preStart(): Unit = {
+        // subscribe to cluster changes, re-subscribe when restart
+        println(s"${self.path.address.host}:${self.path.address.port} [${self.toString}] Starting...")
+        cluster.subscribe(
+            self,
+            initialStateMode=InitialStateAsEvents,
+            classOf[MemberEvent],
+            classOf[UnreachableMember]
+        )
+    }
+
+    override def postStop(): Unit = {
+        println(s"${self.path.address.host}:${self.path.address.port} [${self.toString}] Stopping...")
+        cluster.unsubscribe(self)
+    }
     
     override def receive: Receive = {
+        case state: CurrentClusterState =>
+            log.info("Current members: {}", state.members.mkString(", "))
+        case MemberUp(member) =>
+            log.info(s"Member is Up: ${member.address}")
+        case UnreachableMember(member) =>
+            log.info(s"Member detected as unreachable: $member")
+        case MemberRemoved(member, previousStatus) =>
+            log.info(s"Member is Removed: ${member.address} after $previousStatus")
+        case _: MemberEvent =>
+            // ignore
+            println("Unhandled Cluster Member Event")
         case SET_NEXT_NODE(node) =>
             setNextNode(node)
         case SET_MASTER(master) =>
@@ -33,6 +63,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         case BUY(amount: Int, title: String) =>
             // TODO buy tickets
             handleBuy(amount, title)
+        case SELF_DESTRUCT =>
+            throw new RuntimeException("Self destruct order received. Goodbye.")
         case message: String =>
             println(s"${context.self.path.name} received (string) message: $message")
     }

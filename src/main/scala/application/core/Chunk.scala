@@ -17,7 +17,7 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
      * this is the amount, if enough tickets remain, or if there are not enough tickets, it returns the number of tickets
      * actually taken.
      *
-     * @param amount    the number of tickets to take
+     * @param amount    the number of tickets to attempt take
      * @return          the number of tickets taken from this chunk
      */
     def take(amount: Int): Int = {

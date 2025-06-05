@@ -1,6 +1,6 @@
 package application.client
 
-import akka.actor.{Actor, ActorSelection, Address}
+import akka.actor.{Actor, ActorSelection, Address, ReceiveTimeout}
 import application.core.*
 import com.typesafe.config.{Config, ConfigFactory}
 
@@ -42,6 +42,10 @@ class Client extends Actor {
             handleSelectKiosk()
         case ORDER(tickets: List[Ticket]) =>
             handleOrderReceived(tickets)
+        case ReceiveTimeout =>
+            println("TIMEOUT: No Response")
+        case SELF_DESTRUCT =>
+            handleKillOrder()
         case msg: String =>
             handleStringMessage(msg)
     }
@@ -80,6 +84,10 @@ class Client extends Actor {
             kioskId = 1
         }
         kiosk = context.actorSelection(s"$remoteAddress/user/kiosk$kioskId")
+    }
+
+    private def handleKillOrder(): Unit = {
+        kiosk ! SELF_DESTRUCT
     }
 
     private def printList(list: List[Any]): Unit = {

@@ -1,6 +1,7 @@
 package application.server
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.SupervisorStrategy.Restart
+import akka.actor.{ActorRef, OneForOneStrategy, Props, SupervisorStrategy}
 import application.core.*
 import com.typesafe.config.ConfigFactory
 
@@ -17,7 +18,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private var chunksToAllocate: List[List[Chunk]] = List.empty
     private var kiosks: List[ActorRef] = List.empty
 
-    initRing()
+    initializeKiosks()
     allocate()
 
     private def allocate(): Unit = {
@@ -27,7 +28,6 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         log.info("Allocating Chunks To Kiosks...")
         var i: Int = 0
         kiosks.foreach(kiosk => {
-            // TODO allocate chunks to Kiosks
             log.info(s"Allocating chunks to ${kiosk.toString}")
             chunksToAllocate.foreach(list => {
                 kiosk ! ALLOCATE_CHUNK(list(i))
@@ -37,6 +37,10 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         })
     }
 
+    /**
+     * Divides the number of available tickets across several [[Chunk Chunks]]. Chunks will receive a set amount of tickets.
+     * If the number cannot be evenly divided, the last Chunk will have only the remainder.
+     */
     private def populateChunks(): Unit = {
         var section: String = "A"
         log.info("Populating Chunks...")
@@ -65,7 +69,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         s"${d.toChar}"
     }
 
-    private def initRing(): Unit = {
+    private def initializeKiosks(): Unit = {
         log.info("Creating Actors...")
 
         val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = s"${kioskName}4")
@@ -108,6 +112,11 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private def sendChunk(event: Event): Unit = {
         // TODO
         kiosks.foreach(kiosk => kiosk ! NEED_MORE_TICKETS(event))
+    }
+
+    override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
+        // Supervisor strategy to allow the Master to restart crashed kiosks
+        case _: RuntimeException => Restart
     }
 
 }

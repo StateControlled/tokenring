@@ -73,3 +73,5 @@ case class EVENT_DOES_NOT_EXIST(title: String) extends Message
  * @param order a list of tickets
  */
 case class ORDER(order: List[Ticket]) extends Message
+
+case object SELF_DESTRUCT extends Message
