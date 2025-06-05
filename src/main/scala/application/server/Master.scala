@@ -2,8 +2,15 @@ package application.server
 
 import akka.actor.SupervisorStrategy.Restart
 import akka.actor.{ActorRef, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.pattern.ask
+import akka.util.Timeout
 import application.core.*
 import com.typesafe.config.ConfigFactory
+import sttp.client4.SttpClientException.TimeoutException
+
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
 
 /**
  *
@@ -17,6 +24,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val kioskName               = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[List[Chunk]] = List.empty
     private var kiosks: List[ActorRef] = List.empty
+
+    implicit val timeout: Timeout = Timeout(2 seconds)
 
     initializeKiosks()
     allocate()
@@ -95,9 +104,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             log.info(s"${context.self.path}, Master $id received token ${token.id}")
         case NEED_MORE_TICKETS(event: Event) =>
             sendChunk(event)
-        case STATUS_REPORT() =>
-            log.info(s"${context.self.path}, Master $id")
-            kiosks.foreach(kiosk => kiosk ! STATUS_REPORT())
+        case STATUS_REPORT =>
+            sender() !  STATUS_REPORT_ACK(handleStatusReport())
         case STATUS_REPORT_ACK(ack) =>
             println(ack)
         case EVENTS_QUERY() =>
@@ -107,6 +115,37 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             nextNode ! token
         case STOP =>
             context.system.terminate()
+    }
+
+    private def handleStatusReport(): String = {
+        log.info(s"${context.self.path}, Master $id collecting status report")
+//        kiosks.foreach(kiosk =>
+//            kiosk ! STATUS_REPORT
+//        )
+        var listResult: List[String] = List.empty
+
+        kiosks.foreach(kiosk =>
+            try {
+                val future: Future[Any] = kiosk ? STATUS_REPORT
+                val result = Await.result(future, timeout.duration).asInstanceOf[String]
+                println("Status Report:")
+                println(result)
+                listResult = result :: listResult
+            } catch {
+                case e: TimeoutException =>
+                    println("Server timeout. Request failed.")
+                    listResult = s"${kiosk.path.name} timeout" :: listResult
+                case e: InterruptedException =>
+                    println("Connection interrupted. Request failed.")
+                    listResult = s"${kiosk.path.name} request interrupted" :: listResult
+            }
+        )
+
+        if (listResult.isEmpty) {
+            listResult = "[Master] Status report query failed" :: listResult
+        }
+
+        listResult.mkString(", ")
     }
 
     private def sendChunk(event: Event): Unit = {

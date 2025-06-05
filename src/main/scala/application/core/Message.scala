@@ -57,7 +57,7 @@ case class BUY(ticketQuantity: Int, eventName: String) extends Message
  */
 case class NEED_MORE_TICKETS(event: Event) extends Message
 
-case class STATUS_REPORT() extends Message
+case object STATUS_REPORT extends Message
 case class STATUS_REPORT_ACK(response: String) extends Message
 
 case class EVENTS_QUERY() extends Message

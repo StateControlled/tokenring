@@ -71,7 +71,7 @@ object ClientMain extends App {
     }
 
     private def sendStatusQuery(): Unit = {
-        client ! STATUS_REPORT()
+        client ! STATUS_REPORT
     }
 
     private def sendKillOrder(): Unit = {

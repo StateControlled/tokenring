@@ -50,7 +50,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             setMaster(master)
         case ALLOCATE_CHUNK(chunk) =>
             handleAllocateChunk(chunk)
-        case STATUS_REPORT() =>
+        case STATUS_REPORT =>
             handleStatusReport()
         case token: TOKEN =>
             handleToken(token)

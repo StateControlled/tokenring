@@ -1,8 +1,17 @@
 package application.client
 
 import akka.actor.{Actor, ActorSelection, Address, ReceiveTimeout}
+import akka.pattern.ask
+import akka.util.Timeout
 import application.core.*
 import com.typesafe.config.{Config, ConfigFactory}
+import sttp.client4.SttpClientException.TimeoutException
+
+//import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
+//import scala.util.{Failure, Success}
 
 class Client extends Actor {
     private val config: Config          = ConfigFactory.load.getConfig("server")
@@ -16,6 +25,9 @@ class Client extends Actor {
 
     var kiosk: ActorSelection   = context.actorSelection(s"$remoteAddress/user/$kioskName$kioskId")
     var master: ActorSelection  = context.actorSelection(s"$remoteAddress/user/$masterName")
+
+    // time to wait for a reply
+    implicit val timeout: Timeout = Timeout(5 seconds)
 
     private def setRemoteAddress(): Address = {
         val hostname = ConfigFactory.load.getString("server.akka.remote.artery.canonical.hostname")
@@ -32,7 +44,7 @@ class Client extends Actor {
             handleBuy(ticketQuantity, title)
         case EVENT_DOES_NOT_EXIST(title: String) =>
             println(s"The event $title does not exist.")
-        case STATUS_REPORT() =>
+        case STATUS_REPORT =>
             handleStatusReport()
         case EVENTS_QUERY() =>
             handleEventsQuery()
@@ -70,8 +82,22 @@ class Client extends Actor {
         printList(tickets)
     }
 
+    /**
+     * @see <a href="https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/">Wait for Reply</a>
+     */
     private def handleStatusReport(): Unit = {
-        master ! STATUS_REPORT()
+        try {
+            val future: Future[Any] = master ? STATUS_REPORT
+            val result = Await.result(future, timeout.duration).asInstanceOf[String]
+            println("Status Report:")
+            println(result)
+        } catch {
+            case e: TimeoutException =>
+                println("Server timeout. Request failed.")
+            case e: InterruptedException =>
+                println("Connection interrupted. Request failed.")
+        }
+//        master ! STATUS_REPORT
     }
 
     private def handleEventsQuery(): Unit = {
