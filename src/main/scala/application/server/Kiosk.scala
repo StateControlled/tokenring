@@ -42,8 +42,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         case MemberRemoved(member, previousStatus) =>
             log.info(s"Member is Removed: ${member.address} after $previousStatus")
         case _: MemberEvent =>
-            // ignore
-            println("Unhandled Cluster Member Event")
+            log.info("Unhandled Cluster Member Event")
         case SET_NEXT_NODE(node) =>
             setNextNode(node)
         case SET_MASTER(master) =>
@@ -61,22 +60,20 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
             }
         case BUY(amount: Int, title: String) =>
-            // TODO buy tickets
             handleBuy(amount, title)
         case SELF_DESTRUCT =>
             throw new RuntimeException("Self destruct order received. Goodbye.")
         case message: String =>
-            println(s"${context.self.path.name} received (string) message: $message")
+            handleStringMessage(message)
     }
 
     private def handleBuy(amount: Int, title: String): Unit = {
         val e: Option[Chunk] = eventExists(title)
         if (e.isDefined) {
             // if there is a chunk of tickets for the requested event
-            var ticketOrder: List[Ticket] = tryTakeTickets(amount, e.get)
+            val ticketOrder: List[Ticket] = tryTakeTickets(amount, e.get)
             if (ticketOrder.length == amount) {
                 // order succeeds with complete number of tickets
-                //                    afterBuy()
                 sender() ! ORDER(ticketOrder)
             } else {
                 // TODO query other kiosks for tickets
@@ -89,17 +86,41 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         }
     }
 
+    /**
+     * Check that an event exists. Does not check if there are tickets available.
+     *
+     * @param title event title
+     * @return  an [[Option]] with the corresponding [[Chunk]] if it exists.
+     */
+    private def eventExists(title: String): Option[Chunk] = {
+        eventTicketsOnSale.find(chunk => chunk.getEventName.equalsIgnoreCase(title))
+    }
+
+    /**
+     * Attempts to take the given amount of [[Ticket tickets]] from the [[Chunk chunk]]. If not enough tickets remain,
+     * takes the maximum amount possible.
+     *
+     * @param amount    the number of tickets to take
+     * @param chunk     the chunk to take tickets from
+     * @return          a list of Tickets
+     */
     private def tryTakeTickets(amount: Int, chunk: Chunk): List[Ticket] = {
         val sold = chunk.take(amount)
         if (sold == amount) {
             println(s"Sold $sold tickets for ${chunk.getEventName}")
-            return makeTicketOrder(amount, chunk)
         } else {
             println(s"Sold $sold tickets for ${chunk.getEventName}")
-            return makeTicketOrder(amount, chunk)
         }
+        makeTicketOrder(sold, chunk)
     }
 
+    /**
+     * Creates a list of tickets
+     *
+     * @param amount    the number of tickets to create
+     * @param chunk     the chunk to take tickets from
+     * @return          a list
+     */
     private def makeTicketOrder(amount: Int, chunk: Chunk): List[Ticket] = {
         var result: List[Ticket] = List.empty
 
@@ -124,14 +145,12 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * Handles [[STATUS_REPORT]] messages from the Master actor
      */
     private def handleStatusReport(): Unit = {
+        var events: List[String] = List.empty
         eventTicketsOnSale.foreach(chunk => {
             log.info(s"STATUS Kiosk ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.getTicketsRemaining} tickets remaining.")
+            events = s"${chunk.event}: ${chunk.getTicketsRemaining}" :: events
         })
-        sender() ! STATUS_REPORT_ACK(s"STATUS Kiosk ${context.self.path.name} is online.")
-    }
-
-    private def handleAllocateChunk(chunk: Chunk): Unit = {
-        eventTicketsOnSale = chunk :: eventTicketsOnSale
+        sender() ! STATUS_REPORT_ACK(s"STATUS Kiosk ${context.self.path.name} online")
     }
 
     /**
@@ -140,16 +159,6 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      */
     private def check(chunk: Chunk): Boolean = {
         chunk.getTicketsRemaining > 0
-    }
-
-    /**
-     * Check that an event exists. Does not check if there are tickets available.
-     *
-     * @param title event title
-     * @return  an [[Option]] with the corresponding [[Chunk]] if it exists.
-     */
-    private def eventExists(title: String): Option[Chunk] = {
-        eventTicketsOnSale.find(chunk => chunk.getEventName.equalsIgnoreCase(title))
     }
 
     /**
@@ -162,6 +171,14 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         log.info(s"${context.self.path}, Kiosk $id received token ${token.id}")
         Thread.sleep(500) // Simulate processing time for now
         nextNode ! token
+    }
+
+    private def handleStringMessage(message: String): Unit = {
+        println(s"${context.self.path.name} received (string) message: $message")
+    }
+
+    private def handleAllocateChunk(chunk: Chunk): Unit = {
+        eventTicketsOnSale = chunk :: eventTicketsOnSale
     }
 
     /**
@@ -180,13 +197,6 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      */
     private def setMaster(masterActor: ActorRef): Unit = {
         master = masterActor
-    }
-
-    /**
-     * @return a list of the Events that have chunks allocated to this Kiosk
-     */
-    private def getEventsOnSale: List[Chunk] = {
-        eventTicketsOnSale
     }
 
 }

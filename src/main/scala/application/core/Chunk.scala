@@ -38,11 +38,7 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
         ticketsRemain = ticketsRemain + amount
         false
     }
-
-    def nextSeatNumber: Int = {
-        ticketsSold + 1
-    }
-
+    
     def getEventName: String = {
         event.name
     }

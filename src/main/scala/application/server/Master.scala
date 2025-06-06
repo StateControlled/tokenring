@@ -63,13 +63,6 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             section = nextSection(section)
             chunksToAllocate = chunkList :: chunksToAllocate
         })
-
-//        chunksToAllocate.foreach(chunkList => {
-//            log.info(s"Chunks for ${chunkList.head.event.getName}")
-//            chunkList.foreach(chunk => {
-//                log.info(chunk.toString)
-//            })
-//        })
     }
 
     private def nextSection(section: String): String = {
@@ -106,22 +99,22 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             sendChunk(event)
         case STATUS_REPORT =>
             sender() !  STATUS_REPORT_ACK(handleStatusReport())
-        case STATUS_REPORT_ACK(ack) =>
-            println(ack)
         case EVENTS_QUERY() =>
-            log.info(s"Received query from ${sender()}. Sending event info")
-            sender() ! EVENTS_QUERY_ACK(events)
+            handleEventsQuery()
         case START(token: TOKEN) =>
+            // TODO implement chunk passing with token passing
             nextNode ! token
         case STOP =>
             context.system.terminate()
     }
 
+    private def handleEventsQuery(): Unit = {
+        println(s"Received query from ${sender()}. Sending event info")
+        sender() ! EVENTS_QUERY_ACK(events)
+    }
+
     private def handleStatusReport(): String = {
-        log.info(s"${context.self.path}, Master $id collecting status report")
-//        kiosks.foreach(kiosk =>
-//            kiosk ! STATUS_REPORT
-//        )
+        println(s"${context.self.path}, Master $id collecting status reports")
         var listResult: List[String] = List.empty
 
         kiosks.foreach(kiosk =>

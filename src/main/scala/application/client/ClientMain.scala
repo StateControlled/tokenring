@@ -2,6 +2,8 @@ package application.client
 
 import akka.actor.{ActorSystem, Props}
 import application.core.*
+import application.core.CommandParser.CommandType
+import application.core.CommandParser.CommandType.*
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.StdIn.readLine
@@ -23,26 +25,23 @@ object ClientMain extends App {
      */
     private def run(): Unit = {
         while (true) {
+            menu()
             println("Next > ")
             val command = readLine()
             try
-                if (command.equalsIgnoreCase("exit")) {
-                    exit()
-                } else if (command.equalsIgnoreCase("report")) {
-                    sendStatusQuery()
-                } else if (command.equalsIgnoreCase("switch")) {
-                    sendSwitchCommand()
-                } else if (command.equalsIgnoreCase("list")) {
-                    sendEventsQuery()
-                } else if (command.equalsIgnoreCase("buy")) {
-                    // TODO purchase logic
-                    sendBuyRequest()
-                } else if (command.equalsIgnoreCase("message")) {
-                    sendString()
-                } else if (command.equalsIgnoreCase("kill")) {
-                    sendKillOrder()
-                } else {
-                    println("Not a valid option. Please try again")
+                val commandType: CommandParser.CommandType = CommandParser.parse(command)
+
+                commandType match {
+                    case EXIT => exit()
+                    case REPORT => sendStatusQuery()
+                    case NEXT => sendSwitchCommand()
+                    case LIST => sendEventsQuery()
+                    case PURCHASE => sendBuyRequest()
+                    case ORDERS => sendListOrderRequest()
+                    case SAVE => saveOrders()
+                    case MESSAGE => sendString()
+                    case KILL => sendKillOrder()
+                    case _ => println("Not a valid option. Please try again")
                 }
             catch
                 case e: Exception =>
@@ -50,10 +49,19 @@ object ClientMain extends App {
         }
     }
 
-    private def sendString(): Unit = {
-        println("Message > ")
-        val message = readLine()
-        client ! message
+    /**
+     * Prints the menu by retrieving all the values in the [[CommandParser.CommandType]] enum and printing those.
+     */
+    private def menu(): Unit = {
+        println("Enter next command")
+        CommandParser.CommandType.values
+            .filter(ord => ord != CommandType.NO_ACTION) // don't include the no_action option
+            .foreach(ord => println(f"${ord.name.toUpperCase}%-8s\t- ${ord.description}%s"))
+        println()
+    }
+
+    private def parse(command: String): CommandParser.CommandType = {
+        CommandParser.parse(command)
     }
 
     private def exit(): Unit = {
@@ -62,20 +70,16 @@ object ClientMain extends App {
         System.exit(0)
     }
 
-    private def sendEventsQuery(): Unit = {
-        client ! EVENTS_QUERY()
+    private def sendStatusQuery(): Unit = {
+        client ! STATUS_REPORT
     }
 
     private def sendSwitchCommand(): Unit = {
         client ! SWITCH
     }
 
-    private def sendStatusQuery(): Unit = {
-        client ! STATUS_REPORT
-    }
-
-    private def sendKillOrder(): Unit = {
-        client ! SELF_DESTRUCT
+    private def sendEventsQuery(): Unit = {
+        client ! EVENTS_QUERY()
     }
 
     /**
@@ -90,7 +94,7 @@ object ClientMain extends App {
         if (quantity.isDefined) {
             client ! BUY(quantity.get, eventTitle)
         } else {
-            println("Could not parse command.")
+            println("Could not parse ticket quantity.")
             println("Please try again.")
         }
     }
@@ -103,6 +107,25 @@ object ClientMain extends App {
      */
     private def tryToInt(str: String): Option[Int] = {
         Try(str.toInt).toOption
+    }
+
+    private def sendListOrderRequest(): Unit = {
+        client ! PRINT_ORDERS
+    }
+
+    private def saveOrders(): Unit = {
+        client ! SAVE_ORDERS
+    }
+
+    private def sendString(): Unit = {
+        println("Send a string message.")
+        println("Message > ")
+        val message = readLine()
+        client ! message
+    }
+
+    private def sendKillOrder(): Unit = {
+        client ! SELF_DESTRUCT
     }
 
 }

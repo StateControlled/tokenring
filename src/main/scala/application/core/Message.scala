@@ -75,3 +75,5 @@ case class EVENT_DOES_NOT_EXIST(title: String) extends Message
 case class ORDER(order: List[Ticket]) extends Message
 
 case object SELF_DESTRUCT extends Message
+case object PRINT_ORDERS extends Message
+case object SAVE_ORDERS extends Message

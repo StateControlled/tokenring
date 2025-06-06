@@ -1,7 +1,9 @@
 package application.server
 
 import akka.actor.{ActorSystem, Props}
+import application.client.ClientMain.parse
 import application.core.*
+import application.core.CommandParser.CommandType.*
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.Source
@@ -36,29 +38,32 @@ object Server extends App {
         while (true) {
             println("Next > ")
             val command = readLine()
+
             try
-                if (command.equalsIgnoreCase("stop")) {
-                    stop()
-                } else if (command.equalsIgnoreCase("exit")) {
-                    shutdown()
-                } else if (command.equalsIgnoreCase("start")) {
-                    passToken()
-                } else if (command.equalsIgnoreCase("report")) {
-                    statusReport()
-                } else {
-                    println("Not a valid option. Please try again")
+                val commandType: CommandParser.CommandType = CommandParser.parse(command)
+
+                commandType match {
+                    case EXIT => exit()
+                    case REPORT => statusReport()
+                    case RING => passToken()
+                    case _ => println("Not a valid option. Please try again")
                 }
             catch
                 case e: Exception => e.printStackTrace()
         }
     }
 
-    private def shutdown(): Unit = {
-        System.exit(0)
+    private def exit(): Unit = {
+        stop()
+        shutdown()
     }
 
     private def stop(): Unit = {
         master ! STOP
+    }
+
+    private def shutdown(): Unit = {
+        System.exit(0)
     }
 
     private def statusReport(): Unit = {
