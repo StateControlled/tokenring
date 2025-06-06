@@ -91,8 +91,10 @@ class Client extends Actor {
         } catch {
             case e: TimeoutException =>
                 println("Server timeout. Request failed.")
+                handleSelectKiosk()
             case e: InterruptedException =>
                 println("Connection interrupted. Request failed.")
+                handleSelectKiosk()
         }
         orders = listResult :: orders
     }
@@ -128,6 +130,7 @@ class Client extends Actor {
     }
 
     /**
+     * Failure here may mean the entire system is down.
      * @see <a href="https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/">Wait for Reply</a>
      */
     private def handleStatusReport(): Unit = {
