@@ -6,7 +6,7 @@ package application.core
 object CommandParser {
 
     /**
-     * Converts a string entry into an Enum [[CommandType]] for easier comparison. Returns the option [[CommandType.NO_ACTION]]
+     * Converts a string entry into a [[CommandType]] enum for easier comparison. Returns the option [[CommandType.NO_ACTION]]
      * if a match cannot be found.
      *
      * @param command   the string to check
@@ -41,7 +41,8 @@ object CommandParser {
     }
 
     /**
-     * The enum [[CommandType]]
+     * [[CommandType CommandTypes]] often correspond one-to-one to [[Message Messages]] and serve to assist with translating
+     * a string read by the command line into a message that is delivered to an [[akka.actor.Actor Actor]]
      *
      * @param name          a string name, the text input that corresponds to the command
      * @param description   a string description that is printed on info screens

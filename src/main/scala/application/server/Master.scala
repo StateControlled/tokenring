@@ -23,6 +23,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val numberOfChunksPerEvent  = config.getInt("server.allocation.chunks-per-event")
     private val kioskName               = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[List[Chunk]] = List.empty
+    private var copyOfChunksToAllocate: List[List[Chunk]] = List.empty
     private var kiosks: List[ActorRef] = List.empty
 
     implicit val timeout: Timeout = Timeout(2 seconds)
@@ -63,6 +64,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             section = nextSection(section)
             chunksToAllocate = chunkList :: chunksToAllocate
         })
+        copyOfChunksToAllocate = List(chunksToAllocate:_*)
     }
 
     private def nextSection(section: String): String = {
@@ -104,6 +106,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         case START(token: TOKEN) =>
             // TODO implement chunk passing with token passing
             nextNode ! token
+        case LIST_CHUNKS =>
+            handleListChunks()
         case STOP =>
             context.system.terminate()
     }
@@ -139,6 +143,14 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         }
 
         listResult.mkString(", ")
+    }
+
+    private def handleListChunks(): Unit = {
+        chunksToAllocate.foreach(list => {
+            list.foreach(chunk => {
+                println(chunk)
+            })
+        })
     }
 
     private def sendChunk(event: Event): Unit = {

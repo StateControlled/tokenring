@@ -102,7 +102,7 @@ object ClientMain extends App {
         val ticketQuantity = readLine()
         val quantity = tryToInt(ticketQuantity)
         if (quantity.isDefined) {
-            client ! BUY(quantity.get, eventTitle)
+            client ! BUY(eventTitle)
         } else {
             println("Could not parse ticket quantity.")
             println("Please try again.")

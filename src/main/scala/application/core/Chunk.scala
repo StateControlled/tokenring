@@ -13,26 +13,19 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
     private var allocated: Boolean = false
 
     /**
-     * Adjusts the number of tickets sold by the specified amount. Returns the number of tickets taken from this chunk:
-     * this is the amount, if enough tickets remain, or if there are not enough tickets, it returns the number of tickets
-     * actually taken.
+     * Returns true if there is a ticket to take, false if not.
      *
-     * @param amount    the number of tickets to attempt take
-     * @return          the number of tickets taken from this chunk
+     * @return <code>true</code> if there is a ticket to take
      */
-    def take(amount: Int): Int = {
-        if (amount < ticketsRemain) {
-            ticketsSold = ticketsSold + amount
-            ticketsRemain = ticketsRemain - amount
-            println(s"Took $amount tickets, $ticketsRemain tickets remain.")
-            amount
+    def take(): Boolean = {
+        if (ticketsRemain > 1) {
+            ticketsSold = ticketsSold + 1
+            ticketsRemain = ticketsRemain - 1
+            println(s"Took ${1} ticket, $ticketsRemain tickets remain.")
+            true
         } else {
-            // ticketsRemain < amount
-            val result = ticketsRemain
-            ticketsSold = ticketsSold + ticketsRemain
-            ticketsRemain = 0
-            println(s"Took $result tickets.")
-            result
+            println("No tickets to take")
+            false
         }
     }
 
@@ -71,7 +64,7 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
     }
 
     override def toString: String = {
-        s"Chunk: Allocated $allocation tickets for event \"${event.name}\""
+        f"Chunk Info: Event: ${event.name}%nInitial allocation: $allocation%nTickets remaining: $ticketsRemain%nTickets sold: $ticketsSold"
     }
 
     /**

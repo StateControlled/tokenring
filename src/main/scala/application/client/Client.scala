@@ -14,7 +14,7 @@ import scala.language.postfixOps
 //import scala.util.{Failure, Success}
 
 class Client extends Actor {
-    private var orders: List[List[Ticket]] = List.empty
+    private var orders: List[Ticket] = List.empty
 
     private val config: Config          = ConfigFactory.load.getConfig("server")
     private val numberOfKiosks: Int     = ConfigFactory.load.getInt("server.allocation.number-of-kiosks")
@@ -39,8 +39,8 @@ class Client extends Actor {
     }
 
     override def receive: Receive = {
-        case BUY(ticketQuantity: Int, title: String) =>
-            handleBuy(ticketQuantity, title)
+        case BUY(title: String) =>
+            handleBuy(title)
         case EVENT_DOES_NOT_EXIST(title: String) =>
             handleNoEvent(title)
         case STATUS_REPORT =>
@@ -51,8 +51,8 @@ class Client extends Actor {
             handleEventQueryAck(eventsList)
         case SWITCH =>
             handleSelectKiosk()
-        case ORDER(tickets: List[Ticket]) =>
-            handleOrderReceived(tickets)
+        case ORDER(ticket: Ticket) =>
+            handleOrderReceived(ticket)
         case ReceiveTimeout =>
             handleTimeout()
         case SELF_DESTRUCT =>
@@ -77,16 +77,15 @@ class Client extends Actor {
     /**
      * Sends a [[BUY]] message to a Kiosk and waits for result.
      *
-     * @param ticketQuantity    the number of tickets to buy
      * @param title             the event title
      */
-    private def handleBuy(ticketQuantity: Int, title: String): Unit = {
-        var listResult: List[Ticket] = List.empty
+    private def handleBuy(title: String): Unit = {
+        var listResult: Ticket = null
         try {
-            val future: Future[Any] = kiosk ? BUY(ticketQuantity, title)
+            val future: Future[Any] = kiosk ? BUY(title)
             val result = Await.result(future, timeout.duration).asInstanceOf[ORDER]
-            println("Status Report:")
-            println(result.order.mkString(", "))
+            println("Tickets purchased:")
+            println(result.order)
             listResult = result.order
         } catch {
             case e: TimeoutException =>
@@ -105,15 +104,15 @@ class Client extends Actor {
     }
 
     private def handleStringMessage(msg: String): Unit = {
-        println("Message: " + msg)
         println("Forwarding message to kiosk...")
+        println("Message: " + msg)
         kiosk ! msg
     }
 
-    private def handleOrderReceived(tickets: List[Ticket]): Unit = {
+    private def handleOrderReceived(ticket: Ticket): Unit = {
         println("Purchase successful!")
-        orders = tickets :: orders
-        printList(tickets)
+        orders = ticket :: orders
+        println(ticket)
     }
 
     private def printOrders(): Unit = {
@@ -121,9 +120,7 @@ class Client extends Actor {
             println("No orders")
         } else {
             println("Orders:")
-            orders.foreach(order => order.foreach(
-                ticket => println(ticket)
-            ))
+            orders.foreach(order => println(order))
         }
     }
 

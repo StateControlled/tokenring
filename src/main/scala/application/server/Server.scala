@@ -45,6 +45,7 @@ object Server extends App {
                     case EXIT => exit()
                     case REPORT => statusReport()
                     case RING => passToken()
+                    case LIST => listChunks()
                     case _ => println("Not a valid option. Please try again")
                 }
             catch
@@ -73,6 +74,10 @@ object Server extends App {
         val token = TOKEN(tokenId)
         master ! START(token)
         tokenId = tokenId + 1
+    }
+    
+    private def listChunks(): Unit = {
+        master ! LIST_CHUNKS
     }
 
     /**

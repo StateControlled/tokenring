@@ -15,6 +15,7 @@ sealed trait Message
  * @param id    a unique id to identify this token
  */
 case class TOKEN(id: Int) extends Message
+case class CHUNK_UPDATE(chunks: List[List[Chunk]]) extends Message
 
 /**
  * Specifically for setting a [[application.server.Kiosk]]'s neighbor.
@@ -45,10 +46,9 @@ case object STOP extends Message
 /**
  * A message that indicates a client would like to purchase tickets for the given event.
  *
- * @param ticketQuantity    the desired number of tickets
  * @param eventName             the event
  */
-case class BUY(ticketQuantity: Int, eventName: String) extends Message
+case class BUY(eventName: String) extends Message
 
 /**
  * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
@@ -72,8 +72,9 @@ case class EVENT_DOES_NOT_EXIST(title: String) extends Message
  *
  * @param order a list of tickets
  */
-case class ORDER(order: List[Ticket]) extends Message
+case class ORDER(order: Ticket) extends Message
 
 case object SELF_DESTRUCT extends Message
 case object PRINT_ORDERS extends Message
 case object SAVE_ORDERS extends Message
+case object LIST_CHUNKS extends Message
