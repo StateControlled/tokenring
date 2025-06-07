@@ -62,5 +62,13 @@
             "capacity": 360
         },
         "date": "2026-08-24"
+    },
+    {
+        "name": "Super Exclusive",
+        "venue": {
+            "name": "Grand Hotel",
+            "capacity": 30
+        },
+        "date": "2025-06-28"
     }
 ]

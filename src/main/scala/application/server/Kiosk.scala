@@ -18,7 +18,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
     override def preStart(): Unit = {
         // subscribe to cluster changes, re-subscribe when restart
-        println(s"${self.path.address.host}:${self.path.address.port} [${self.toString}] Starting...")
+        println(s"${self.toString} Starting...")
         cluster.subscribe(
             self,
             initialStateMode=InitialStateAsEvents,
@@ -67,6 +67,14 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             handleStringMessage(message)
     }
 
+    /////////////////////////////////
+
+    /**
+     * Purchase logic.
+     *
+     * @param amount    the number of tickets
+     * @param title     the event title
+     */
     private def handleBuy(amount: Int, title: String): Unit = {
         val e: Option[Chunk] = eventExists(title)
         if (e.isDefined) {
@@ -129,6 +137,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
         result
     }
+
+    /////////////////////////////////
 
     /**
      * Runs after a successful ticket purchase

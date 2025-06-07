@@ -32,6 +32,7 @@ object ClientMain extends App {
                 val commandType: CommandParser.CommandType = CommandParser.parse(command)
 
                 commandType match {
+                    case HELP => menu()
                     case EXIT => exit()
                     case REPORT => sendStatusQuery()
                     case NEXT => sendSwitchCommand()
@@ -53,9 +54,18 @@ object ClientMain extends App {
      * Prints the menu by retrieving all the values in the [[CommandParser.CommandType]] enum and printing those.
      */
     private def menu(): Unit = {
-        println("Enter next command")
+        println("--Enter next command")
+        commands()
+    }
+
+    private def help(): Unit = {
+        println("--Help")
+        commands()
+    }
+
+    private def commands(): Unit = {
         CommandParser.CommandType.values
-            .filter(ord => ord != CommandType.NO_ACTION) // don't include the no_action option
+            .filter(ord => ord != CommandType.NO_ACTION && ord != CommandType.RING) // don't include irrelevant options
             .foreach(ord => println(f"${ord.name.toUpperCase}%-8s\t- ${ord.description}%s"))
         println()
     }

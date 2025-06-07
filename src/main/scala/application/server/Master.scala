@@ -120,10 +120,10 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         kiosks.foreach(kiosk =>
             try {
                 val future: Future[Any] = kiosk ? STATUS_REPORT
-                val result = Await.result(future, timeout.duration).asInstanceOf[String]
+                val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
                 println("Status Report:")
-                println(result)
-                listResult = result :: listResult
+                println(result.response)
+                listResult = result.response :: listResult
             } catch {
                 case e: TimeoutException =>
                     println("Server timeout. Request failed.")

@@ -84,10 +84,10 @@ class Client extends Actor {
         var listResult: List[Ticket] = List.empty
         try {
             val future: Future[Any] = kiosk ? BUY(ticketQuantity, title)
-            val result = Await.result(future, timeout.duration).asInstanceOf[List[Ticket]]
+            val result = Await.result(future, timeout.duration).asInstanceOf[ORDER]
             println("Status Report:")
-            println(result)
-            listResult = result
+            println(result.order.mkString(", "))
+            listResult = result.order
         } catch {
             case e: TimeoutException =>
                 println("Server timeout. Request failed.")
@@ -117,10 +117,14 @@ class Client extends Actor {
     }
 
     private def printOrders(): Unit = {
-        println("Orders:")
-        orders.foreach(order => order.foreach(
-            ticket => println(ticket)
-        ))
+        if (orders.isEmpty) {
+            println("No orders")
+        } else {
+            println("Orders:")
+            orders.foreach(order => order.foreach(
+                ticket => println(ticket)
+            ))
+        }
     }
 
     private def saveOrders(): Unit = {
@@ -136,9 +140,9 @@ class Client extends Actor {
     private def handleStatusReport(): Unit = {
         try {
             val future: Future[Any] = master ? STATUS_REPORT
-            val result = Await.result(future, timeout.duration).asInstanceOf[String]
+            val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
             println("Status Report:")
-            println(result)
+            println(result.response)
         } catch {
             case e: TimeoutException =>
                 println("Server timeout. Request failed.")

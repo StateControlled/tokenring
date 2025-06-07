@@ -1,7 +1,6 @@
 package application.server
 
 import akka.actor.{ActorSystem, Props}
-import application.client.ClientMain.parse
 import application.core.*
 import application.core.CommandParser.CommandType.*
 import com.typesafe.config.{Config, ConfigFactory}
@@ -27,7 +26,7 @@ object Server extends App {
     private val system = ActorSystem("TicketSelling", config)
     private val master = system.actorOf(Props(classOf[Master], 0, eventList), name=s"$masterName")
 
-    Thread.sleep(5000)
+    Thread.sleep(2000)
 
     run()
 

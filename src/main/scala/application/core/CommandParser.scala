@@ -13,7 +13,9 @@ object CommandParser {
      * @return          a [[CommandType]]
      */
     def parse(command: String): CommandType = {
-        if (command.equalsIgnoreCase("exit")) {
+        if (command.equalsIgnoreCase("help")) {
+            CommandType.HELP
+        } else if (command.equalsIgnoreCase("exit")) {
             CommandType.EXIT
         } else if (command.equalsIgnoreCase("report")) {
             CommandType.REPORT
@@ -29,6 +31,8 @@ object CommandParser {
             CommandType.SAVE
         } else if (command.equalsIgnoreCase("message")) {
             CommandType.MESSAGE
+        } else if (command.equalsIgnoreCase("start")) {
+            CommandType.RING
         } else if (command.equalsIgnoreCase("kill")) {
             CommandType.KILL
         } else {
@@ -36,7 +40,14 @@ object CommandParser {
         }
     }
 
+    /**
+     * The enum [[CommandType]]
+     *
+     * @param name          a string name, the text input that corresponds to the command
+     * @param description   a string description that is printed on info screens
+     */
     enum CommandType(val name: String, val description: String) {
+        case HELP       extends CommandType("help", "prints available commands")
         case EXIT       extends CommandType("exit", "terminates the program")
         case REPORT     extends CommandType("report", "queries kiosks for their status")
         case NEXT       extends CommandType("switch", "switches connection to the next available kiosk")
@@ -52,6 +63,7 @@ object CommandParser {
         def getAll: List[CommandType] = {
             CommandType.values.toList
         }
+
     }
 
 }

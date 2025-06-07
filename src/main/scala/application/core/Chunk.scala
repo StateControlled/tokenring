@@ -24,12 +24,14 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
         if (amount < ticketsRemain) {
             ticketsSold = ticketsSold + amount
             ticketsRemain = ticketsRemain - amount
+            println(s"Took $amount tickets, $ticketsRemain tickets remain.")
             amount
         } else {
             // ticketsRemain < amount
             val result = ticketsRemain
             ticketsSold = ticketsSold + ticketsRemain
             ticketsRemain = 0
+            println(s"Took $result tickets.")
             result
         }
     }
