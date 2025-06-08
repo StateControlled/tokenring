@@ -5,9 +5,8 @@ package application.core
  *
  * @param event         the [[Event]]
  * @param allocation    the initial number of tickets allocated to this chunk
- * @param section       an identifier for this chunk
  */
-class Chunk(val event: Event, var allocation: Int, var section: String) {
+class Chunk(val event: Event, var allocation: Int) {
     private var ticketsSold = 0
     private var ticketsRemain = allocation
 
@@ -49,9 +48,15 @@ class Chunk(val event: Event, var allocation: Int, var section: String) {
         }
     }
 
-    def add(amount: Int): Boolean = {
+    /**
+     * Add tickets to the chunk.
+     *
+     * @param amount    the number of tickets to add
+     * @return          the number of tickets remaining including the addition
+     */
+    def add(amount: Int): Int = {
         ticketsRemain = ticketsRemain + amount
-        false
+        ticketsRemain
     }
     
     def getEventName: String = {
@@ -82,15 +87,7 @@ class Chunk(val event: Event, var allocation: Int, var section: String) {
     def getTicketsSold: Int = {
         ticketsSold
     }
-
-    def getSection: String = {
-        section
-    }
-
-    def setSection(newSection: String): Unit = {
-        section = newSection
-    }
-
+    
     override def toString: String = {
         f"Chunk Info: Event: ${event.name}%nInitial allocation: $allocation%nTickets remaining: $ticketsRemain%nTickets sold: $ticketsSold"
     }

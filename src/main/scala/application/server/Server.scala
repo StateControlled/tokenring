@@ -43,8 +43,6 @@ object Server extends App {
 
                 commandType match {
                     case EXIT => exit()
-                    case REPORT => statusReport()
-                    case RING => passToken()
                     case LIST => listChunks()
                     case _ => println("Not a valid option. Please try again")
                 }
@@ -64,16 +62,6 @@ object Server extends App {
 
     private def shutdown(): Unit = {
         System.exit(0)
-    }
-
-    private def statusReport(): Unit = {
-        master ! STATUS_REPORT
-    }
-
-    private def passToken(): Unit = {
-        val token = TOKEN(tokenId)
-        master ! START(token)
-        tokenId = tokenId + 1
     }
     
     private def listChunks(): Unit = {

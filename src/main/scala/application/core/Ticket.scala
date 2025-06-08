@@ -9,10 +9,10 @@ import upickle.default.ReadWriter
  * @param event     the [[Event]]
  * @param date      the date of the event
  */
-case class Ticket(venue: String, event: String, date: String, seat: String) derives ReadWriter {
+case class Ticket(venue: String, event: String, date: String) derives ReadWriter {
 
     override def toString: String = {
-        s"$event: $date at $venue. Seat No $seat"
+        s"$event: $date at $venue"
     }
 
 }

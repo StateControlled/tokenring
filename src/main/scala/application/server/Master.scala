@@ -3,12 +3,10 @@ package application.server
 import akka.actor.SupervisorStrategy.Restart
 import akka.actor.{ActorRef, OneForOneStrategy, Props, SupervisorStrategy}
 import akka.pattern.ask
-import akka.util.Timeout
 import application.core.*
 import com.typesafe.config.ConfigFactory
 import sttp.client4.SttpClientException.TimeoutException
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
@@ -24,11 +22,9 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private var chunksToAllocate: List[Chunk]   = List.empty
     private var kiosks: List[ActorRef]          = List.empty
 
-    implicit val timeout: Timeout = Timeout(2 seconds)
+    initSystem()
 
-    buildSystem()
-
-    private def buildSystem(): Unit = {
+    private def initSystem(): Unit = {
         populateChunks()
         initializeKiosks()
     }
@@ -40,7 +36,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private def populateChunks(): Unit = {
         log.info("Populating Chunks...")
         events.foreach(event => {
-            val chunk: Chunk = new Chunk(event, event.getCapacity, "A")
+            val chunk: Chunk = new Chunk(event, event.getCapacity)
             chunksToAllocate = chunk :: chunksToAllocate
         })
     }
@@ -66,24 +62,24 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
 
         kiosks.foreach(kiosk => kiosk ! SET_MASTER(context.self))
 
-        distributeChunks()
+        distributeChunks(chunksToAllocate, chunkSize)
     }
 
-    private def distributeChunks(): Unit = {
-
-        nextNode ! ALLOCATE_CHUNKS(chunksToAllocate, chunkSize)
+    /**
+     * Send chunks around the ring to distribute them.
+     *
+     * @param chunks    a chunk containing all events
+     * @param size      the number of tickets each kiosk may take
+     */
+    private def distributeChunks(chunks: List[Chunk], size: Int): Unit = {
+        nextNode ! ALLOCATE_CHUNKS(chunks, size)
     }
 
     override def receive: Receive = {
         case ALLOCATE_CHUNKS(chunks, chunkSize) =>
-            receiveChunks(chunks)
-        case SET_NEXT_NODE(node) =>
-            nextNode = node
+            updateChunks(chunks)
         case NEED_MORE_TICKETS(event, sendTo) =>
-            // TODO
             handleNeedMoreTickets(event, sendTo)
-        case STATUS_REPORT =>
-            sender() !  STATUS_REPORT_ACK(handleStatusReport())
         case EVENTS_QUERY() =>
             handleEventsQuery()
         case LIST_CHUNKS =>
@@ -92,46 +88,20 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             stop()
     }
 
-    private def receiveChunks(chunks: List[Chunk]): Unit = {
+    private def updateChunks(chunks: List[Chunk]): Unit = {
         chunksToAllocate = chunks
         println("Chunks have been allocated.")
         println("Chunks remaining:")
         chunksToAllocate.foreach(chunk => {
             println(chunk)
         })
+
+//        nextNode ! ALLOCATE_CHUNKS(chunksToAllocate, 1, true)
     }
 
     private def handleEventsQuery(): Unit = {
         println(s"Received query from ${sender()}. Sending event info")
         sender() ! EVENTS_QUERY_ACK(events)
-    }
-
-    private def handleStatusReport(): String = {
-        println(s"${context.self.path}, Master $id collecting status reports")
-        var listResult: List[String] = List.empty
-
-        kiosks.foreach(kiosk =>
-            try {
-                val future: Future[Any] = kiosk ? STATUS_REPORT
-                val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
-                println("Status Report:")
-                println(result.response)
-                listResult = result.response :: listResult
-            } catch {
-                case e: TimeoutException =>
-                    println("Server timeout. Request failed.")
-                    listResult = s"${kiosk.path.name} timeout" :: listResult
-                case e: InterruptedException =>
-                    println("Connection interrupted. Request failed.")
-                    listResult = s"${kiosk.path.name} request interrupted" :: listResult
-            }
-        )
-
-        if (listResult.isEmpty) {
-            listResult = "[Master] Status report query failed" :: listResult
-        }
-
-        listResult.mkString(", ")
     }
 
     private def handleListChunks(): Unit = {
@@ -140,21 +110,28 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         })
     }
 
+    /**
+     * If a kiosk requests tickets, send tickets (if available)
+     *
+     * @param title
+     * @param sendTo
+     */
     private def handleNeedMoreTickets(title: String, sendTo: ActorRef): Unit = {
-        // TODO
         val chunkResult: Option[Chunk] = chunksToAllocate.find(chunk => {
             chunk.getEventName.equalsIgnoreCase(title)
         })
 
         if (chunkResult.isDefined) {
+            // TODO
+            var chunkToSend: List[Chunk] = List.empty
             val chunk: Chunk = chunkResult.get
-            val amount: Int = chunk.take(chunkSize)
-            val chunkToSend = new Chunk(chunk.event,  amount, chunk.section)
-            var list: List[Chunk] = List.empty
-            list = chunkToSend :: list
-            sendTo ! ALLOCATE_CHUNKS(list, amount)
+            chunkToSend = chunk :: chunkToSend
+            val size: Int = chunk.getTicketsRemaining / kiosks.size
+            // start ring
+            nextNode ! ALLOCATE_CHUNKS(chunkToSend, size)
         } else {
             // TODO request chunks from other kiosks if Master has no more
+
         }
     }
 

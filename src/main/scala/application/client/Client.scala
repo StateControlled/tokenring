@@ -43,8 +43,6 @@ class Client extends Actor {
             handleBuy(title)
         case EVENT_DOES_NOT_EXIST(title: String) =>
             handleNoEvent(title)
-        case STATUS_REPORT =>
-            handleStatusReport()
         case EVENTS_QUERY() =>
             handleEventsQuery()
         case EVENTS_QUERY_ACK(eventsList) =>
@@ -61,8 +59,6 @@ class Client extends Actor {
             printOrders()
         case SAVE_ORDERS =>
             saveOrders()
-        case msg: String =>
-            handleStringMessage(msg)
     }
 
     private def handleTimeout(): Unit = {
@@ -83,17 +79,27 @@ class Client extends Actor {
         var listResult: Ticket = null
         try {
             val future: Future[Any] = kiosk ? BUY(title)
-            val result = Await.result(future, timeout.duration).asInstanceOf[ORDER]
-            println("Tickets purchased:")
-            println(result.order)
-            listResult = result.order
+            val result = Await.result(future, timeout.duration)
+            result match
+                case ORDER(ord) =>
+                    println("Tickets purchased:")
+                    println(ord)
+                    listResult = ord
+                case EVENT_DOES_NOT_EXIST(t) =>
+                    handleNoEvent(t)
+                case EVENT_SOLD_OUT(t) =>
+                    println("Event sold out!")
+                case _ =>
+                    println("[CLIENT] Unhandled message return type")
         } catch {
             case e: TimeoutException =>
-                println("Server timeout. Request failed.")
+                println("[CLIENT] Server timeout. Request failed.")
                 handleSelectKiosk()
             case e: InterruptedException =>
-                println("Connection interrupted. Request failed.")
+                println("[CLIENT] Connection interrupted. Request failed.")
                 handleSelectKiosk()
+            case e: ClassCastException =>
+                println("[CLIENT] Unhandled message return type")
         }
         orders = listResult :: orders
     }
@@ -134,19 +140,19 @@ class Client extends Actor {
      * Failure here may mean the entire system is down.
      * @see <a href="https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/">Wait for Reply</a>
      */
-    private def handleStatusReport(): Unit = {
-        try {
-            val future: Future[Any] = master ? STATUS_REPORT
-            val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
-            println("Status Report:")
-            println(result.response)
-        } catch {
-            case e: TimeoutException =>
-                println("Server timeout. Request failed.")
-            case e: InterruptedException =>
-                println("Connection interrupted. Request failed.")
-        }
-    }
+//    private def handleStatusReport(): Unit = {
+//        try {
+//            val future: Future[Any] = master ? STATUS_REPORT
+//            val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
+//            println("Status Report:")
+//            println(result.response)
+//        } catch {
+//            case e: TimeoutException =>
+//                println("Server timeout. Request failed.")
+//            case e: InterruptedException =>
+//                println("Connection interrupted. Request failed.")
+//        }
+//    }
 
     private def handleEventsQuery(): Unit = {
         master ! EVENTS_QUERY()

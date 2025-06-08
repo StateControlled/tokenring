@@ -1,9 +1,15 @@
 package application.server
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Address, ReceiveTimeout}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.{CurrentClusterState, InitialStateAsEvents, MemberEvent, MemberRemoved, MemberUp, UnreachableMember}
 import application.core.*
+import akka.pattern.ask
+import akka.util.Timeout
+import sttp.client4.SttpClientException.TimeoutException
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
 
 /**
  * A <code>Node</code> in the token ring system.
@@ -16,6 +22,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     protected var master: ActorRef = _ // null
     private var eventTicketsOnSale: List[Chunk] = List.empty
     private val cluster: Cluster = Cluster(context.system)
+
+    implicit val timeout: Timeout = Timeout(5 seconds)
 
     override def preStart(): Unit = {
         // called on instantiation
@@ -46,24 +54,19 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             log.info(s"Member is Removed: ${member.address} after $previousStatus")
         case _: MemberEvent =>
             log.info("Unhandled Cluster Member Event")
+
         case SET_NEXT_NODE(node) =>
             setNextNode(node)
         case SET_MASTER(master) =>
             setMaster(master)
+
         case ALLOCATE_CHUNKS(chunk, size) =>
             handleAllocateChunk(chunk, size)
-        case STATUS_REPORT =>
-            handleStatusReport()
         case BUY(title: String) =>
             handleBuy(title)
+            afterBuy()
         case SELF_DESTRUCT =>
             throw new RuntimeException("Self destruct order received. Goodbye.")
-        case message: String =>
-            handleStringMessage(message)
-    }
-
-    private def transferTicketsTo(requester: ActorRef, event: String, amount: Int): Unit = {
-
     }
 
     /////////////////////////////////
@@ -76,17 +79,16 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * @param title     the event title
      */
     private def handleBuy(title: String): Unit = {
-        val event: Option[Chunk] = eventExists(title)
-        if (event.isDefined) {
+        val chunk: Option[Chunk] = eventExists(title)
+
+        if (chunk.isDefined) {
             // if there is a chunk of tickets for the requested event
-            val ticketOrder: Option[Ticket] = tryTakeTickets(event.get)
+            val ticketOrder: Option[Ticket] = tryTakeTickets(chunk.get)
             if (ticketOrder.isDefined) {
                 // order succeeds with complete number of tickets
                 sender() ! ORDER(ticketOrder.get)
             } else {
-                // TODO query other kiosks for tickets
-                // if there are none, send failure message
-                master ! NEED_MORE_TICKETS(title, self)
+                sender() ! EVENT_SOLD_OUT(title)
             }
         } else {
             // no such option exists, no event
@@ -114,24 +116,25 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     private def tryTakeTickets(chunk: Chunk): Option[Ticket] = {
         if (chunk.sellOne()) {
             println(s"Sold a ticket for ${chunk.getEventName}")
-            Some(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.getTicketsSold}"))
+            Some(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate))
         } else {
             println(s"No tickets remaining for ${chunk.getEventName}")
             None
         }
-
     }
 
     /////////////////////////////////
 
     /**
-     * Handles [[STATUS_REPORT]] messages from the Master actor
+     * If the kiosk has run out of tickets for any event, send a message to the Master
+     * requesting more tickets.
      */
-    private def handleStatusReport(): Unit = {
+    private def afterBuy(): Unit = {
         eventTicketsOnSale.foreach(chunk => {
-            log.info(s"STATUS ${context.self.path.name}; Tickets on sale: ${chunk.toString}, ${chunk.getTicketsRemaining} tickets remaining.")
+            if (!check(chunk)) {
+                master ! NEED_MORE_TICKETS(chunk.getEventName, self)
+            }
         })
-        sender() ! STATUS_REPORT_ACK(s"STATUS Kiosk ${context.self.path.name} online")
     }
 
     /**
@@ -141,6 +144,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     private def check(chunk: Chunk): Boolean = {
         chunk.getTicketsRemaining > 0
     }
+
+    /////////////////////////////////
 
     private def handleStringMessage(message: String): Unit = {
         println(s"${context.self.path.name} received (string) message: $message")
@@ -152,24 +157,24 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * @param chunks    a list of chunks
      */
     private def handleAllocateChunk(chunks: List[Chunk], chunkSize: Int): Unit = {
+        // Add more tickets
         chunks.foreach(chunk => {
-            val allocation: Chunk = new Chunk(chunk.event, chunk.take(chunkSize), chunk.section)
-            eventTicketsOnSale = allocation :: eventTicketsOnSale
-            chunk.setSection(nextSection(chunk.section))
+            // find matching chunk
+            val local: Option[Chunk] = eventTicketsOnSale.find(chunk => {
+                chunk.getEventName.equalsIgnoreCase(chunks.head.getEventName)
+            })
+            // add inventory
+            if (local.isDefined) {
+                val localChunk: Chunk = local.get
+                if (localChunk.getTicketsRemaining == 0) {
+                    localChunk.add(chunk.take(chunkSize))
+                }
+            } else {
+                val allocation: Chunk = new Chunk(chunk.event, chunk.take(chunkSize))
+                eventTicketsOnSale = allocation :: eventTicketsOnSale
+            }
         })
         nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize)
-    }
-
-    /**
-     * Advances the first Char to the next char is ASCII ordering.
-     *
-     * @param section   a string
-     * @return          the next in the series
-     */
-    private def nextSection(section: String): String = {
-        val c: Char = section.charAt(0)
-        val d = c.+(1)
-        s"${d.toChar}"
     }
 
     //////////////////////////////////////////
@@ -180,7 +185,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      *
      * @param next  the node to become the neighbor
      */
-    protected def setNextNode(next: ActorRef): Unit = {
+    private def setNextNode(next: ActorRef): Unit = {
         nextNode = next
     }
 
@@ -189,7 +194,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      *
      * @param masterActor   an ActorRef to the Master actor
      */
-    protected def setMaster(masterActor: ActorRef): Unit = {
+    private def setMaster(masterActor: ActorRef): Unit = {
         master = masterActor
     }
 
