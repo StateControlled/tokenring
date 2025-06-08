@@ -18,61 +18,36 @@ import scala.language.postfixOps
  * @param events    a list of [[Event]]
  */
 class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
-    private val config                  = ConfigFactory.load()
-//    private val numberOfKiosks = config.getInt("server.allocation.number-of-kiosks")
-    private val numberOfChunksPerEvent  = config.getInt("server.allocation.chunks-per-event")
-    private val kioskName               = config.getString("server.naming.node-actor-name")
-    private var chunksToAllocate: List[List[Chunk]] = List.empty
-    private var copyOfChunksToAllocate: List[List[Chunk]] = List.empty
-    private var kiosks: List[ActorRef] = List.empty
+    private val config                          = ConfigFactory.load()
+    private val chunkSize                       = config.getInt("server.allocation.chunks-per-event")
+    private val kioskName                       = config.getString("server.naming.node-actor-name")
+    private var chunksToAllocate: List[Chunk]   = List.empty
+    private var kiosks: List[ActorRef]          = List.empty
 
     implicit val timeout: Timeout = Timeout(2 seconds)
 
-    initializeKiosks()
-    allocate()
+    buildSystem()
 
-    private def allocate(): Unit = {
-        // split the total capacity (total number of tickets for an event) across the given number of chunks
+    private def buildSystem(): Unit = {
         populateChunks()
+        initializeKiosks()
+    }
 
-        log.info("Allocating Chunks To Kiosks...")
-        var i: Int = 0
-        kiosks.foreach(kiosk => {
-            log.info(s"Allocating chunks to ${kiosk.toString}")
-            chunksToAllocate.foreach(list => {
-                kiosk ! ALLOCATE_CHUNK(list(i))
-                list(i).setIsAllocated(true)
-            })
-            i = i + 1
+    /**
+     * Creates one chunk for each event with the maximum number of tickets available.
+     * These chunks will be passed to each kiosk and each kiosk will take its allocation of tickets.
+     */
+    private def populateChunks(): Unit = {
+        log.info("Populating Chunks...")
+        events.foreach(event => {
+            val chunk: Chunk = new Chunk(event, event.getCapacity, "A")
+            chunksToAllocate = chunk :: chunksToAllocate
         })
     }
 
     /**
-     * Divides the number of available tickets across several [[Chunk Chunks]]. Chunks will receive a set amount of tickets.
-     * If the number cannot be evenly divided, the last Chunk will have only the remainder.
+     * Creates the Kiosks that will be Nodes in the ring.
      */
-    private def populateChunks(): Unit = {
-        var section: String = "A"
-        log.info("Populating Chunks...")
-        events.foreach(event => {
-            val initialChunkAllocation = event.getCapacity / numberOfChunksPerEvent
-            val remainder = event.getCapacity - (initialChunkAllocation * numberOfChunksPerEvent)
-            var chunkList: List[Chunk] = (1 to numberOfChunksPerEvent).toList.map(i => new Chunk(event, initialChunkAllocation, section))
-            if (remainder > 0) {
-                chunkList = new Chunk(event, remainder, section) :: chunkList
-            }
-            section = nextSection(section)
-            chunksToAllocate = chunkList :: chunksToAllocate
-        })
-        copyOfChunksToAllocate = List(chunksToAllocate:_*)
-    }
-
-    private def nextSection(section: String): String = {
-        val c: Char = section.charAt(0)
-        val d = c.+(1)
-        s"${d.toChar}"
-    }
-
     private def initializeKiosks(): Unit = {
         log.info("Creating Actors...")
 
@@ -90,26 +65,40 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         kiosk4 ! SET_NEXT_NODE(context.self)
 
         kiosks.foreach(kiosk => kiosk ! SET_MASTER(context.self))
+
+        distributeChunks()
+    }
+
+    private def distributeChunks(): Unit = {
+
+        nextNode ! ALLOCATE_CHUNKS(chunksToAllocate, chunkSize)
     }
 
     override def receive: Receive = {
+        case ALLOCATE_CHUNKS(chunks, chunkSize) =>
+            receiveChunks(chunks)
         case SET_NEXT_NODE(node) =>
             nextNode = node
-        case token: TOKEN =>
-            log.info(s"${context.self.path}, Master $id received token ${token.id}")
-        case NEED_MORE_TICKETS(event: Event) =>
-            sendChunk(event)
+        case NEED_MORE_TICKETS(event, sendTo) =>
+            // TODO
+            handleNeedMoreTickets(event, sendTo)
         case STATUS_REPORT =>
             sender() !  STATUS_REPORT_ACK(handleStatusReport())
         case EVENTS_QUERY() =>
             handleEventsQuery()
-        case START(token: TOKEN) =>
-            // TODO implement chunk passing with token passing
-            nextNode ! token
         case LIST_CHUNKS =>
             handleListChunks()
         case STOP =>
-            context.system.terminate()
+            stop()
+    }
+
+    private def receiveChunks(chunks: List[Chunk]): Unit = {
+        chunksToAllocate = chunks
+        println("Chunks have been allocated.")
+        println("Chunks remaining:")
+        chunksToAllocate.foreach(chunk => {
+            println(chunk)
+        })
     }
 
     private def handleEventsQuery(): Unit = {
@@ -146,21 +135,36 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     }
 
     private def handleListChunks(): Unit = {
-        chunksToAllocate.foreach(list => {
-            list.foreach(chunk => {
-                println(chunk)
-            })
+        chunksToAllocate.foreach(chunk => {
+            println(chunk)
         })
     }
 
-    private def sendChunk(event: Event): Unit = {
+    private def handleNeedMoreTickets(title: String, sendTo: ActorRef): Unit = {
         // TODO
-        kiosks.foreach(kiosk => kiosk ! NEED_MORE_TICKETS(event))
+        val chunkResult: Option[Chunk] = chunksToAllocate.find(chunk => {
+            chunk.getEventName.equalsIgnoreCase(title)
+        })
+
+        if (chunkResult.isDefined) {
+            val chunk: Chunk = chunkResult.get
+            val amount: Int = chunk.take(chunkSize)
+            val chunkToSend = new Chunk(chunk.event,  amount, chunk.section)
+            var list: List[Chunk] = List.empty
+            list = chunkToSend :: list
+            sendTo ! ALLOCATE_CHUNKS(list, amount)
+        } else {
+            // TODO request chunks from other kiosks if Master has no more
+        }
     }
 
     override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
         // Supervisor strategy to allow the Master to restart crashed kiosks
         case _: RuntimeException => Restart
+    }
+
+    private def stop(): Unit = {
+        context.system.terminate()
     }
 
 }

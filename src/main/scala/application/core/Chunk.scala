@@ -7,17 +7,16 @@ package application.core
  * @param allocation    the initial number of tickets allocated to this chunk
  * @param section       an identifier for this chunk
  */
-class Chunk(val event: Event, var allocation: Int, val section: String) {
+class Chunk(val event: Event, var allocation: Int, var section: String) {
     private var ticketsSold = 0
     private var ticketsRemain = allocation
-    private var allocated: Boolean = false
 
     /**
-     * Returns true if there is a ticket to take, false if not.
+     * Returns true if there is a ticket to take, false if not. Decrements the number of tickets available if a ticket is taken.
      *
      * @return <code>true</code> if there is a ticket to take
      */
-    def take(): Boolean = {
+    def sellOne(): Boolean = {
         if (ticketsRemain > 1) {
             ticketsSold = ticketsSold + 1
             ticketsRemain = ticketsRemain - 1
@@ -26,6 +25,27 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
         } else {
             println("No tickets to take")
             false
+        }
+    }
+
+    /**
+     * Removes an amount of tickets from the chunk. Removes the amount requested or the maximum number of available tickets,
+     * if there are fewer tickets than requested.
+     *
+     * @param amount    the number of tickets to remove
+     * @return          the number of tickets actually removed.
+     */
+    def take(amount: Int): Int = {
+        if (amount < ticketsRemain) {
+            ticketsSold = ticketsSold + amount
+            ticketsRemain = ticketsRemain - amount
+            amount
+        } else {
+            // ticketsRemain < amount
+            val result = ticketsRemain
+            ticketsSold = ticketsSold + ticketsRemain
+            ticketsRemain = 0
+            result
         }
     }
 
@@ -63,19 +83,16 @@ class Chunk(val event: Event, var allocation: Int, val section: String) {
         ticketsSold
     }
 
+    def getSection: String = {
+        section
+    }
+
+    def setSection(newSection: String): Unit = {
+        section = newSection
+    }
+
     override def toString: String = {
         f"Chunk Info: Event: ${event.name}%nInitial allocation: $allocation%nTickets remaining: $ticketsRemain%nTickets sold: $ticketsSold"
-    }
-
-    /**
-     * @return <code>true</code> if this [[Chunk]] has not been allocated to a [[Kiosk]]
-     */
-    def isFree: Boolean = {
-        !allocated
-    }
-
-    def setIsAllocated(isAllocated: Boolean): Unit = {
-        allocated = isAllocated
     }
 
 }

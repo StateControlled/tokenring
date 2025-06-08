@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.{CurrentClusterState, InitialStateAsEvents, MemberEvent, MemberRemoved, MemberUp, UnreachableMember}
 import application.core.*
+
 /**
  * A <code>Node</code> in the token ring system.
  *
@@ -11,12 +12,13 @@ import application.core.*
  * @see [[Master]]
  */
 class Kiosk(val id : Int) extends Actor with ActorLogging {
-    protected var nextNode: ActorRef = _
-    protected var master: ActorRef = _
+    protected var nextNode: ActorRef = _ // null
+    protected var master: ActorRef = _ // null
     private var eventTicketsOnSale: List[Chunk] = List.empty
     private val cluster: Cluster = Cluster(context.system)
 
     override def preStart(): Unit = {
+        // called on instantiation
         // subscribe to cluster changes, re-subscribe when restart
         println(s"${self.toString} Starting...")
         cluster.subscribe(
@@ -28,6 +30,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     }
 
     override def postStop(): Unit = {
+        // called when stopped
         println(s"${self.toString} Stopping...")
         cluster.unsubscribe(self)
     }
@@ -47,18 +50,10 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             setNextNode(node)
         case SET_MASTER(master) =>
             setMaster(master)
-        case ALLOCATE_CHUNK(chunk) =>
-            handleAllocateChunk(chunk)
+        case ALLOCATE_CHUNKS(chunk, size) =>
+            handleAllocateChunk(chunk, size)
         case STATUS_REPORT =>
             handleStatusReport()
-        case token: TOKEN =>
-            handleToken(token)
-        case NEED_MORE_TICKETS(event: Event) =>
-            // TODO
-            val e: Option[Chunk] = eventExists(event.name)
-            if (check(e.get)) {
-
-            }
         case BUY(title: String) =>
             handleBuy(title)
         case SELF_DESTRUCT =>
@@ -72,9 +67,11 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     }
 
     /////////////////////////////////
+    // Purchase Logic
 
     /**
-     * Purchase logic.
+     * Handles a request to [[Buy purchase]] tickets. If a ticket is available for the given event, returns a [[Ticket]],
+     * else requests more tickets from the [[Master]]
      *
      * @param title     the event title
      */
@@ -89,7 +86,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             } else {
                 // TODO query other kiosks for tickets
                 // if there are none, send failure message
-                master ! NEED_MORE_TICKETS(event.get.event)
+                master ! NEED_MORE_TICKETS(title, self)
             }
         } else {
             // no such option exists, no event
@@ -115,7 +112,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * @return          a list of Tickets
      */
     private def tryTakeTickets(chunk: Chunk): Option[Ticket] = {
-        if (chunk.take()) {
+        if (chunk.sellOne()) {
             println(s"Sold a ticket for ${chunk.getEventName}")
             Some(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate, s"${chunk.section}${chunk.getTicketsSold}"))
         } else {
@@ -126,17 +123,6 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     }
 
     /////////////////////////////////
-
-    /**
-     * Runs after a successful ticket purchase
-     */
-    private def afterBuy(): Unit = {
-        eventTicketsOnSale.foreach(chunk => {
-            if (!check(chunk)) {
-                context.parent ! NEED_MORE_TICKETS(chunk.event)
-            }
-        })
-    }
 
     /**
      * Handles [[STATUS_REPORT]] messages from the Master actor
@@ -156,32 +142,45 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         chunk.getTicketsRemaining > 0
     }
 
-    /**
-     * Handles receiving a [[TOKEN]]
-     *
-     * @param token the [[TOKEN]]
-     */
-    // TODO
-    private def handleToken(token: TOKEN): Unit = {
-        log.info(s"${context.self.path}, Kiosk $id received token ${token.id}")
-        Thread.sleep(500) // Simulate processing time for now
-        nextNode ! token
-    }
-
     private def handleStringMessage(message: String): Unit = {
         println(s"${context.self.path.name} received (string) message: $message")
     }
 
-    private def handleAllocateChunk(chunk: Chunk): Unit = {
-        eventTicketsOnSale = chunk :: eventTicketsOnSale
+    /**
+     * Take a portion of each chunk.
+     *
+     * @param chunks    a list of chunks
+     */
+    private def handleAllocateChunk(chunks: List[Chunk], chunkSize: Int): Unit = {
+        chunks.foreach(chunk => {
+            val allocation: Chunk = new Chunk(chunk.event, chunk.take(chunkSize), chunk.section)
+            eventTicketsOnSale = allocation :: eventTicketsOnSale
+            chunk.setSection(nextSection(chunk.section))
+        })
+        nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize)
     }
+
+    /**
+     * Advances the first Char to the next char is ASCII ordering.
+     *
+     * @param section   a string
+     * @return          the next in the series
+     */
+    private def nextSection(section: String): String = {
+        val c: Char = section.charAt(0)
+        val d = c.+(1)
+        s"${d.toChar}"
+    }
+
+    //////////////////////////////////////////
+    // Getters and Setters
 
     /**
      * Sets this [[Kiosk]] neighbor, the next node in a token-ring system.
      *
      * @param next  the node to become the neighbor
      */
-    private def setNextNode(next: ActorRef): Unit = {
+    protected def setNextNode(next: ActorRef): Unit = {
         nextNode = next
     }
 
@@ -190,7 +189,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      *
      * @param masterActor   an ActorRef to the Master actor
      */
-    private def setMaster(masterActor: ActorRef): Unit = {
+    protected def setMaster(masterActor: ActorRef): Unit = {
         master = masterActor
     }
 

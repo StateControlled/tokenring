@@ -30,7 +30,7 @@ case class SET_MASTER(master: ActorRef) extends Message
  *
  * @param chunk the chunk to allocate to the [[application.server.Kiosk]]
  */
-case class ALLOCATE_CHUNK(chunk: Chunk) extends Message
+case class ALLOCATE_CHUNKS(var chunk: List[Chunk], chunkSize: Int) extends Message
 
 /**
  * Start with a given [[Message]].
@@ -55,7 +55,7 @@ case class BUY(eventName: String) extends Message
  *
  * @param event the event
  */
-case class NEED_MORE_TICKETS(event: Event) extends Message
+case class NEED_MORE_TICKETS(event: String, sendTo: ActorRef) extends Message
 
 case object STATUS_REPORT extends Message
 case class STATUS_REPORT_ACK(response: String) extends Message

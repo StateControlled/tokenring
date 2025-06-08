@@ -12,3 +12,4 @@ select another kiosk to connect to so the next attempt may succeed.
 Fault tolerance
 Cluster system allows nodes to join and leave the system in an orderly manner and a one-for-one supervisor strategy
 allows the Master to restart failed nodes.
+Weakness: If the Master crashes, the whole system may go down.
