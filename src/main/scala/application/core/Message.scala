@@ -2,6 +2,8 @@ package application.core
 
 import akka.actor.ActorRef
 
+import scala.collection.mutable
+
 /**
  * Base trait for all messages which can be passed to a [[application.server.Kiosk]].
  * @see <a href="https://www.tutorialspoint.com/scala/scala_sealed_trait.htm">Sealed Trait</a> <br>
@@ -17,9 +19,7 @@ case class SET_NEXT_NODE(nextNode: ActorRef) extends Message
 case class SET_MASTER(master: ActorRef) extends Message
 
 case class ALLOCATE_CHUNKS(var chunk: List[Chunk], chunkSize: Int, destinationId: Int) extends Message
-case class TICKET_ASK(title: String, requesterId: Int) extends Message
-case object SALES_REPORT extends Message
-case class SALES_REPORT_ACK(record: SalesRecord) extends Message
+case class SALES_REPORT(events: mutable.Map[Event, Boolean]) extends Message
 
 /**
  * A simple Stop message
@@ -45,13 +45,14 @@ case class EVENT_DOES_NOT_EXIST(title: String) extends Message
  * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
  * @param event the event
  */
-case class NEED_MORE_TICKETS(event: String, recipientId: Int) extends Message
+case class NEED_MORE_TICKETS(event: String, replyTo: ActorRef) extends Message
+case class TICKET_ASK(title: String, replyTo: ActorRef) extends Message
+case class TICKET_ASK_REPLY(chunk: Chunk) extends Message
 
 case class EVENTS_QUERY() extends Message
 case class EVENTS_QUERY_ACK(events: List[Event]) extends Message
 
 case object SWITCH extends Message
-case object SELF_DESTRUCT extends Message
 case object PRINT_ORDERS extends Message
 case object SAVE_ORDERS extends Message
 case object LIST_CHUNKS extends Message

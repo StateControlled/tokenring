@@ -27,8 +27,6 @@ object CommandParser {
             CommandType.ORDERS
         } else if (command.equalsIgnoreCase("save")) {
             CommandType.SAVE
-        } else if (command.equalsIgnoreCase("kill")) {
-            CommandType.KILL
         } else {
             CommandType.NO_ACTION
         }
@@ -49,7 +47,6 @@ object CommandParser {
         case PURCHASE   extends CommandType("buy", "connects to a kiosk and purchases tickets")
         case ORDERS     extends CommandType("orders", "lists current orders")
         case SAVE       extends CommandType("save", "saves current orders to disk")
-        case KILL       extends CommandType("kill", "forces a shutdown of a kiosk")
         case NO_ACTION  extends CommandType("none", "not a valid option")
 
         def getAll: List[CommandType] = {

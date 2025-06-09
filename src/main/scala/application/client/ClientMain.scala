@@ -7,7 +7,6 @@ import application.core.CommandParser.CommandType.*
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.io.StdIn.readLine
-import scala.util.Try
 
 /**
  * Starts a [[Client]] Actor and sends messages to the client that are then forwarded to a [[application.server.Kiosk Kiosk]]
@@ -39,7 +38,6 @@ object ClientMain extends App {
                     case PURCHASE => sendBuyRequest()
                     case ORDERS => sendListOrderRequest()
                     case SAVE => saveOrders()
-                    case KILL => sendKillOrder()
                     case _ => println("Not a valid option. Please try again")
                 }
             catch
@@ -68,22 +66,10 @@ object ClientMain extends App {
         println()
     }
 
-    private def parse(command: String): CommandParser.CommandType = {
-        CommandParser.parse(command)
-    }
-
     private def exit(): Unit = {
         println("Goodbye")
         system.terminate()
         System.exit(0)
-    }
-
-    private def sendSwitchCommand(): Unit = {
-        client ! SWITCH
-    }
-
-    private def sendEventsQuery(): Unit = {
-        client ! EVENTS_QUERY()
     }
 
     /**
@@ -95,14 +81,12 @@ object ClientMain extends App {
         client ! BUY(eventTitle)
     }
 
-    /**
-     * Attempts to parse a string to an [[Int]]. If this fails, returns [[None]].
-     *
-     * @param str   the string to parse
-     * @return      an [[Option]] containing the [[Int]] or [[None]]
-     */
-    private def tryToInt(str: String): Option[Int] = {
-        Try(str.toInt).toOption
+    private def sendSwitchCommand(): Unit = {
+        client ! SWITCH
+    }
+
+    private def sendEventsQuery(): Unit = {
+        client ! EVENTS_QUERY()
     }
 
     private def sendListOrderRequest(): Unit = {
@@ -112,9 +96,5 @@ object ClientMain extends App {
     private def saveOrders(): Unit = {
         client ! SAVE_ORDERS
     }
-
-    private def sendKillOrder(): Unit = {
-        client ! SELF_DESTRUCT
-    }
-
+    
 }

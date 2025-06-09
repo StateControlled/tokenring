@@ -1,14 +1,13 @@
 package application.server
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Address, ReceiveTimeout}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.cluster.Cluster
-import akka.cluster.ClusterEvent.{CurrentClusterState, InitialStateAsEvents, MemberEvent, MemberRemoved, MemberUp, UnreachableMember}
-import application.core.*
-import akka.pattern.ask
+import akka.cluster.ClusterEvent.*
 import akka.util.Timeout
-import sttp.client4.SttpClientException.TimeoutException
+import application.core.*
+
+import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /**
@@ -57,28 +56,62 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
         case LIST_CHUNKS =>
             handleListChunks()
-
         case SET_NEXT_NODE(node) =>
             setNextNode(node)
         case SET_MASTER(master) =>
             setMaster(master)
-
+        case NEED_MORE_TICKETS(title, replyTo) =>
+            handleNeedMoreTickets(title, replyTo)
+        case SALES_REPORT(events) =>
+            handleSalesReport(events)
         case ALLOCATE_CHUNKS(chunk, size, destinationId) =>
             handleAllocateChunk(chunk, size, destinationId)
-
         case BUY(title: String) =>
             handleBuy(title)
             afterBuyCheck()
-        case SELF_DESTRUCT =>
-            throw new RuntimeException("Self destruct order received. Goodbye.")
+    }
+
+    private def handleSalesReport(events: mutable.Map[Event, Boolean]): Unit = {
+        eventTicketsOnSale.foreach(chunk => {
+            val b: Option[Boolean] = events.get(chunk.event)
+            if (b.isDefined) {
+                // update map
+                val soldOut: Boolean = b.get // event is sold out?
+                events += (chunk.event -> (soldOut || chunk.isDepleted))
+            }
+        })
+        // pass to next node in ring
+        nextNode ! SALES_REPORT(events)
     }
 
     private def afterBuyCheck(): Unit = {
         eventTicketsOnSale.foreach(chunk => {
             if (chunk.isDepleted) {
-                master ! NEED_MORE_TICKETS(chunk.getEventName, id)
+                master ! TICKET_ASK(chunk.getEventName, self)
             }
         })
+    }
+
+    private def handleNeedMoreTickets(title: String, replyTo: ActorRef): Unit = {
+        if (self != replyTo) {
+            val chunk: Option[Chunk] = chunkExists(title)
+
+            if (chunk.isDefined) {
+                // send tickets if available
+                val c: Chunk = chunk.get
+                if (c.getTicketsRemaining > 1) {
+                    val part: Int = c.take(c.getTicketsRemaining / 2) // take half
+                    val replyChunk: Chunk = new Chunk(c.event, part)
+                    replyTo ! TICKET_ASK_REPLY(replyChunk)
+                    println(s"$self sent a chunk to $replyTo")
+                    return
+                }
+            } else {
+                nextNode ! NEED_MORE_TICKETS(title, replyTo)
+            }
+        } else {
+            nextNode ! NEED_MORE_TICKETS(title, replyTo)
+        }
     }
 
     /////////////////////////////////
@@ -129,7 +162,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      */
     private def tryTakeTickets(chunk: Chunk): Option[Ticket] = {
         if (chunk.sellOne()) {
-            println(s"Kiosk $id sold a ticket for ${chunk.getEventName}")
+            println(s"Kiosk $id sold 1 ticket for ${chunk.getEventName}")
             Some(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate))
         } else {
             println(s"[Kiosk $id] No tickets remaining for ${chunk.getEventName}")
@@ -157,7 +190,6 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
                 val localChunk: Chunk = local.get
                 if (localChunk.isDepleted) {
                     localChunk.add(chunk.take(chunkSize))
-                    master ! EVENT_SOLD_OUT(localChunk.getEventName, false)
                 }
             } else {
                 // new allocation
@@ -170,6 +202,9 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize, destinationId)
     }
 
+    /**
+     * Lists information about chunks
+     */
     private def handleListChunks(): Unit = {
         println(s"Kiosk $id events on sale:")
         eventTicketsOnSale.foreach(chunk => {

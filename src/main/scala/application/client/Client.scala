@@ -1,18 +1,19 @@
 package application.client
 
-import akka.actor.{Actor, ActorSelection, Address, ReceiveTimeout}
+import akka.actor.{Actor, ActorSelection, Address}
 import akka.pattern.ask
 import akka.util.Timeout
 import application.core.*
 import com.typesafe.config.{Config, ConfigFactory}
 import sttp.client4.SttpClientException.TimeoutException
 
-//import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
-//import scala.util.{Failure, Success}
 
+/**
+ * Client Actor communicates with the Actor System to purchase tickets. It responds to commands from the [[ClientMain]] object
+ */
 class Client extends Actor {
     private var orders: List[Ticket] = List.empty
 
@@ -51,8 +52,6 @@ class Client extends Actor {
             handleSelectKiosk()
         case ORDER(ticket: Ticket) =>
             handleOrderReceived(ticket)
-        case SELF_DESTRUCT =>
-            handleKillOrder()
         case PRINT_ORDERS =>
             printOrders()
         case SAVE_ORDERS =>
@@ -133,24 +132,6 @@ class Client extends Actor {
         os.write(os.pwd / "orders.json", json)
     }
 
-    /**
-     * Failure here may mean the entire system is down.
-     * @see <a href="https://alvinalexander.com/scala/akka-actor-how-to-send-message-wait-for-reply-ask/">Wait for Reply</a>
-     */
-//    private def handleStatusReport(): Unit = {
-//        try {
-//            val future: Future[Any] = master ? STATUS_REPORT
-//            val result = Await.result(future, timeout.duration).asInstanceOf[STATUS_REPORT_ACK]
-//            println("Status Report:")
-//            println(result.response)
-//        } catch {
-//            case e: TimeoutException =>
-//                println("Server timeout. Request failed.")
-//            case e: InterruptedException =>
-//                println("Connection interrupted. Request failed.")
-//        }
-//    }
-
     private def handleEventsQuery(): Unit = {
         master ! EVENTS_QUERY()
     }
@@ -161,10 +142,6 @@ class Client extends Actor {
             kioskId = 1
         }
         kiosk = context.actorSelection(s"$remoteAddress/user/kiosk$kioskId")
-    }
-
-    private def handleKillOrder(): Unit = {
-        kiosk ! SELF_DESTRUCT
     }
 
     private def printList(list: List[Any]): Unit = {

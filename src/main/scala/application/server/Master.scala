@@ -1,16 +1,14 @@
 package application.server
 
 import akka.actor.SupervisorStrategy.Restart
-import akka.actor.{ActorRef, OneForOneStrategy, Props, Scheduler, SupervisorStrategy}
-import akka.pattern.ask
+import akka.actor.{ActorRef, OneForOneStrategy, Props, SupervisorStrategy}
 import application.core.*
 import com.typesafe.config.ConfigFactory
-import sttp.client4.SttpClientException.TimeoutException
 
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future}
 
 /**
  *
@@ -24,6 +22,11 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private var chunksToAllocate: List[Chunk]   = List.empty
     private var kiosks: List[ActorRef]          = List.empty
     private var salesRecords: List[SalesRecord] = List.empty
+    private var soldOutEvents: mutable.Map[Event, Boolean] = mutable.Map.empty
+
+    override def postStop(): Unit = {
+        super.postStop()
+    }
 
     initSystem()
 
@@ -31,6 +34,14 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         populateChunks()
         initializeKiosks()
     }
+
+    // check sales at interval
+    context.system.scheduler.scheduleAtFixedRate(
+        60.seconds,
+        10.seconds,
+        nextNode,
+        SALES_REPORT(soldOutEvents)
+    )
 
     /**
      * Creates one chunk for each event with the maximum number of tickets available.
@@ -41,10 +52,9 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         events.foreach(event => {
             val chunk: Chunk = new Chunk(event, event.getCapacity)
             chunk.setIsTotallySoldOut(false)
-            chunksToAllocate = chunk :: chunksToAllocate
+            chunksToAllocate = chunk :: chunksToAllocate    // create a chunk with all possible tickets for each event
 
-            val emptyRecord: SalesRecord = SalesRecord(0, event.name, 0, event.getCapacity)
-            salesRecords = emptyRecord :: salesRecords
+            soldOutEvents += (event -> false) // mark all events as not sold out
         })
     }
 
@@ -54,20 +64,18 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private def initializeKiosks(): Unit = {
         log.info("[Master] Creating Actors...")
 
-//        val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = s"${kioskName}4")
-//        val kiosk3 = context.system.actorOf(Props(classOf[Kiosk], 3), name = s"${kioskName}3")
+        val kiosk4 = context.system.actorOf(Props(classOf[Kiosk], 4), name = s"${kioskName}4")
+        val kiosk3 = context.system.actorOf(Props(classOf[Kiosk], 3), name = s"${kioskName}3")
         val kiosk2 = context.system.actorOf(Props(classOf[Kiosk], 2), name = s"${kioskName}2")
         val kiosk1 = context.system.actorOf(Props(classOf[Kiosk], 1), name = s"${kioskName}1")
 
-//        kiosks = kiosk4 :: kiosk3 :: kiosk2 :: kiosk1 :: kiosks
-        kiosks = kiosk2 :: kiosk1 :: kiosks
+        kiosks = kiosk4 :: kiosk3 :: kiosk2 :: kiosk1 :: kiosks
 
         nextNode = kiosk1
         kiosk1 ! SET_NEXT_NODE(kiosk2)
-        kiosk2 ! SET_NEXT_NODE(context.self)
-//        kiosk2 ! SET_NEXT_NODE(kiosk3)
-//        kiosk3 ! SET_NEXT_NODE(kiosk4)
-//        kiosk4 ! SET_NEXT_NODE(context.self)
+        kiosk2 ! SET_NEXT_NODE(kiosk3)
+        kiosk3 ! SET_NEXT_NODE(kiosk4)
+        kiosk4 ! SET_NEXT_NODE(context.self)
 
         kiosks.foreach(kiosk => kiosk ! SET_MASTER(context.self))
 
@@ -91,8 +99,20 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             handleEventsQuery()
         case LIST_CHUNKS =>
             handleListChunks()
+        case TICKET_ASK(event, recipientId) =>
+            handleTicketAsk(event, recipientId)
+        case SALES_REPORT(salesReport) =>
+            handleSalesReport(salesReport)
         case STOP =>
             stop()
+    }
+
+    private def handleSalesReport(salesReport: mutable.Map[Event, Boolean]): Unit = {
+        soldOutEvents = salesReport
+    }
+
+    private def handleTicketAsk(title: String, requesterId: ActorRef): Unit = {
+        nextNode ! NEED_MORE_TICKETS(title, requesterId)
     }
 
     /**
@@ -120,6 +140,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     }
 
     private def handleListChunks(): Unit = {
+        println("[MASTER] Chunks in reserve:")
         chunksToAllocate.foreach(chunk => {
             println(chunk)
         })
