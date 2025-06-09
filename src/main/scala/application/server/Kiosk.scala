@@ -55,6 +55,9 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         case _: MemberEvent =>
             log.info("Unhandled Cluster Member Event")
 
+        case LIST_CHUNKS =>
+            handleListChunks()
+
         case SET_NEXT_NODE(node) =>
             setNextNode(node)
         case SET_MASTER(master) =>
@@ -126,10 +129,10 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      */
     private def tryTakeTickets(chunk: Chunk): Option[Ticket] = {
         if (chunk.sellOne()) {
-            println(s"Sold a ticket for ${chunk.getEventName}")
+            println(s"Kiosk $id sold a ticket for ${chunk.getEventName}")
             Some(Ticket(chunk.getVenueName, chunk.getEventName, chunk.getEventDate))
         } else {
-            println(s"No tickets remaining for ${chunk.getEventName}")
+            println(s"[Kiosk $id] No tickets remaining for ${chunk.getEventName}")
             None
         }
     }
@@ -145,8 +148,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         // Add more tickets
         chunks.foreach(chunk => {
             // find matching chunk
-            val local: Option[Chunk] = eventTicketsOnSale.find(chunk => {
-                chunk.getEventName.equalsIgnoreCase(chunks.head.getEventName)
+            val local: Option[Chunk] = eventTicketsOnSale.find(c => {
+                c.getEventName.equalsIgnoreCase(chunk.getEventName)
             })
             // add inventory
             if (local.isDefined) {
@@ -154,17 +157,24 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
                 val localChunk: Chunk = local.get
                 if (localChunk.isDepleted) {
                     localChunk.add(chunk.take(chunkSize))
-                }
-                if (chunk.isDepleted) {
-                    localChunk.setIsTotallySoldOut(true)
+                    master ! EVENT_SOLD_OUT(localChunk.getEventName, false)
                 }
             } else {
                 // new allocation
-                val allocation: Chunk = new Chunk(chunk.event, chunk.take(chunkSize))
+                val num: Int = chunk.take(chunkSize)
+                val allocation: Chunk = new Chunk(chunk.event, num)
                 eventTicketsOnSale = allocation :: eventTicketsOnSale
+                println(s"Kiosk $id added a new chunk of ${allocation.getTicketsRemaining} tickets for ${allocation.getEventName}")
             }
         })
         nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize, destinationId)
+    }
+
+    private def handleListChunks(): Unit = {
+        println(s"Kiosk $id events on sale:")
+        eventTicketsOnSale.foreach(chunk => {
+            println(chunk)
+        })
     }
 
     //////////////////////////////////////////

@@ -6,9 +6,10 @@ package application.core
  * @param event         the [[Event]]
  * @param allocation    the initial number of tickets allocated to this chunk
  */
-class Chunk(val event: Event, var allocation: Int) {
+class Chunk(val event: Event, val allocation: Int) {
     private var ticketsSold = 0
     private var ticketsRemain = allocation
+    // track if the event as a whole, not just this chunk, is sold out
     private var totallySoldOut = false
 
     /**
@@ -37,8 +38,8 @@ class Chunk(val event: Event, var allocation: Int) {
      */
     def take(amount: Int): Int = {
         if (amount < ticketsRemain) {
-            ticketsSold = ticketsSold + amount
             ticketsRemain = ticketsRemain - amount
+            ticketsSold = ticketsSold + amount
             amount
         } else {
             // ticketsRemain < amount
@@ -57,6 +58,7 @@ class Chunk(val event: Event, var allocation: Int) {
      */
     def add(amount: Int): Int = {
         ticketsRemain = ticketsRemain + amount
+        setIsTotallySoldOut(false)
         ticketsRemain
     }
     
@@ -105,7 +107,7 @@ class Chunk(val event: Event, var allocation: Int) {
     }
     
     override def toString: String = {
-        f"Chunk Info: Event: ${event.name}%nInitial allocation: $allocation%nTickets remaining: $ticketsRemain%nTickets sold: $ticketsSold"
+        f"Chunk Info: Event: ${event.name}%nInitial allocation: $allocation%nTickets remaining: $ticketsRemain%nTickets sold: $ticketsSold%nSold out: $isTotallySoldOut"
     }
 
 }
