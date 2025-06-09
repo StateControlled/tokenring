@@ -77,8 +77,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     /**
      * Send chunks around the ring to distribute them.
      *
-     * @param chunks    a chunk containing all events
-     * @param size      the number of tickets each kiosk may take
+     * @param chunks    a list of chunks containing all events
+     * @param size      the maximum number of tickets each kiosk may take
      */
     private def distributeChunks(chunks: List[Chunk], size: Int): Unit = {
         nextNode ! ALLOCATE_CHUNKS(chunks, size, -1)
@@ -95,9 +95,15 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             stop()
     }
 
+    /**
+     * Continuously pass chunks around.
+     *
+     * @param chunks        event chunks
+     * @param chunkSize     the maximum number of tickets a kiosk can take
+     */
     private def updateChunks(chunks: List[Chunk], chunkSize: Int): Unit = {
         chunksToAllocate = chunks
-        println("[Master] Chunks have been allocated.")
+//        println("[Master] Chunks have been (re)allocated.")
 //        println("[Master] Chunks remaining:")
 //        chunksToAllocate.foreach(chunk => {
 //            println(chunk)
@@ -105,11 +111,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
 
         Thread.sleep(2000)
 
-        var size: Int = chunkSize
-        if (chunkSize > 1) {
-            size = size - 1
-        }
-        distributeChunks(chunks, size)
+        distributeChunks(chunks, chunkSize)
     }
 
     private def handleEventsQuery(): Unit = {

@@ -18,13 +18,13 @@ class Chunk(val event: Event, val allocation: Int) {
      * @return <code>true</code> if there is a ticket to take
      */
     def sellOne(): Boolean = {
-        if (ticketsRemain > 1) {
+        if (ticketsRemain >= 1) {
             ticketsSold = ticketsSold + 1
             ticketsRemain = ticketsRemain - 1
-            println(s"Took ${1} ticket, $ticketsRemain tickets remain.")
+            println(s"[Chunk] Took ${1} ticket, $ticketsRemain tickets remain.")
             true
         } else {
-            println("No tickets to take")
+            println("[Chunk] No tickets to take")
             false
         }
     }
