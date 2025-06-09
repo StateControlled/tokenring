@@ -8,7 +8,7 @@ package application.core
  * @param sales     the number of tickets sold by this Kiosk
  * @param open      the number of tickets remaining
  */
-case class SalesRecord(kioskId: Int, event: String, sales: Int, open: Int) {
+case class SalesRecord(kioskId: Int, event: String, var sales: Int, var open: Int) {
 
     override def toString: String = {
         f"Kiosk ID: $kioskId, Event: $event%nSold $sales tickets, $open tickets remaining"

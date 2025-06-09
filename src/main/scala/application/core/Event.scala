@@ -8,6 +8,7 @@ import upickle.default.ReadWriter
  * @param date  the date the [[Event]] will occur
  */
 case class Event(name: String, venue: Venue, date: String) derives ReadWriter {
+    
     def getCapacity: Int = {
         venue.capacity
     }

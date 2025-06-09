@@ -51,8 +51,6 @@ class Client extends Actor {
             handleSelectKiosk()
         case ORDER(ticket: Ticket) =>
             handleOrderReceived(ticket)
-        case ReceiveTimeout =>
-            handleTimeout()
         case SELF_DESTRUCT =>
             handleKillOrder()
         case PRINT_ORDERS =>
@@ -61,8 +59,8 @@ class Client extends Actor {
             saveOrders()
     }
 
-    private def handleTimeout(): Unit = {
-        println("TIMEOUT: No Response")
+    private def handleSoldOut(title: String): Unit = {
+
     }
 
     private def handleNoEvent(title: String): Unit = {
@@ -76,43 +74,42 @@ class Client extends Actor {
      * @param title             the event title
      */
     private def handleBuy(title: String): Unit = {
-        var listResult: Ticket = null
+        var orderResult: Ticket = null
         try {
             val future: Future[Any] = kiosk ? BUY(title)
             val result = Await.result(future, timeout.duration)
             result match
-                case ORDER(ord) =>
+                case ORDER(ticket) =>
                     println("Tickets purchased:")
-                    println(ord)
-                    listResult = ord
-                case EVENT_DOES_NOT_EXIST(t) =>
-                    handleNoEvent(t)
-                case EVENT_SOLD_OUT(t) =>
-                    println("Event sold out!")
-                case _ =>
-                    println("[CLIENT] Unhandled message return type")
+                    println(ticket)
+                    orderResult = ticket
+                case EVENT_DOES_NOT_EXIST(title) =>
+                    handleNoEvent(title)
+                case EVENT_SOLD_OUT(title, tryAgain) =>
+                    if (tryAgain) {
+                        handleSelectKiosk()
+                        println("Order did not process, please try again.")
+                    } else {
+                        println(s"Sorry. The event $title is sold out.")
+                    }
         } catch {
             case e: TimeoutException =>
                 println("[CLIENT] Server timeout. Request failed.")
                 handleSelectKiosk()
             case e: InterruptedException =>
                 println("[CLIENT] Connection interrupted. Request failed.")
-                handleSelectKiosk()
             case e: ClassCastException =>
                 println("[CLIENT] Unhandled message return type")
         }
-        orders = listResult :: orders
+
+        if (orderResult != null) {
+            orders = orderResult :: orders
+        }
     }
 
     private def handleEventQueryAck(eventsList: List[Event]): Unit = {
         println("Events on sale:")
         printList(eventsList)
-    }
-
-    private def handleStringMessage(msg: String): Unit = {
-        println("Forwarding message to kiosk...")
-        println("Message: " + msg)
-        kiosk ! msg
     }
 
     private def handleOrderReceived(ticket: Ticket): Unit = {

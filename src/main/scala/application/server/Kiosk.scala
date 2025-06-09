@@ -60,16 +60,26 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         case SET_MASTER(master) =>
             setMaster(master)
 
-        case ALLOCATE_CHUNKS(chunk, size) =>
-            handleAllocateChunk(chunk, size)
+        case ALLOCATE_CHUNKS(chunk, size, destinationId) =>
+            handleAllocateChunk(chunk, size, destinationId)
+
         case BUY(title: String) =>
             handleBuy(title)
-            afterBuy()
+            afterBuyCheck()
         case SELF_DESTRUCT =>
             throw new RuntimeException("Self destruct order received. Goodbye.")
     }
 
+    private def afterBuyCheck(): Unit = {
+        eventTicketsOnSale.foreach(chunk => {
+            if (chunk.isDepleted) {
+                master ! NEED_MORE_TICKETS(chunk.getEventName, id)
+            }
+        })
+    }
+
     /////////////////////////////////
+
     // Purchase Logic
 
     /**
@@ -79,16 +89,17 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * @param title     the event title
      */
     private def handleBuy(title: String): Unit = {
-        val chunk: Option[Chunk] = eventExists(title)
+        val chunk: Option[Chunk] = chunkExists(title)
 
         if (chunk.isDefined) {
             // if there is a chunk of tickets for the requested event
             val ticketOrder: Option[Ticket] = tryTakeTickets(chunk.get)
             if (ticketOrder.isDefined) {
                 // order succeeds with complete number of tickets
-                sender() ! ORDER(ticketOrder.get)
+                val ticket: Ticket = ticketOrder.get
+                sender() ! ORDER(ticket)
             } else {
-                sender() ! EVENT_SOLD_OUT(title)
+                sender() ! EVENT_SOLD_OUT(title, chunk.get.isTotallySoldOut)
             }
         } else {
             // no such option exists, no event
@@ -102,7 +113,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * @param title event title
      * @return  an [[Option]] with the corresponding [[Chunk]] if it exists.
      */
-    private def eventExists(title: String): Option[Chunk] = {
+    private def chunkExists(title: String): Option[Chunk] = {
         eventTicketsOnSale.find(chunk => chunk.getEventName.equalsIgnoreCase(title))
     }
 
@@ -126,37 +137,11 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     /////////////////////////////////
 
     /**
-     * If the kiosk has run out of tickets for any event, send a message to the Master
-     * requesting more tickets.
-     */
-    private def afterBuy(): Unit = {
-        eventTicketsOnSale.foreach(chunk => {
-            if (!check(chunk)) {
-                master ! NEED_MORE_TICKETS(chunk.getEventName, self)
-            }
-        })
-    }
-
-    /**
-     * @param chunk the [[Chunk]] to check
-     * @return  <code>true</code> if the [[Chunk]] has tickets remaining.
-     */
-    private def check(chunk: Chunk): Boolean = {
-        chunk.getTicketsRemaining > 0
-    }
-
-    /////////////////////////////////
-
-    private def handleStringMessage(message: String): Unit = {
-        println(s"${context.self.path.name} received (string) message: $message")
-    }
-
-    /**
      * Take a portion of each chunk.
      *
      * @param chunks    a list of chunks
      */
-    private def handleAllocateChunk(chunks: List[Chunk], chunkSize: Int): Unit = {
+    private def handleAllocateChunk(chunks: List[Chunk], chunkSize: Int, destinationId: Int): Unit = {
         // Add more tickets
         chunks.foreach(chunk => {
             // find matching chunk
@@ -165,16 +150,21 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             })
             // add inventory
             if (local.isDefined) {
+                // to existing
                 val localChunk: Chunk = local.get
-                if (localChunk.getTicketsRemaining == 0) {
+                if (localChunk.isDepleted) {
                     localChunk.add(chunk.take(chunkSize))
                 }
+                if (chunk.isDepleted) {
+                    localChunk.setIsTotallySoldOut(true)
+                }
             } else {
+                // new allocation
                 val allocation: Chunk = new Chunk(chunk.event, chunk.take(chunkSize))
                 eventTicketsOnSale = allocation :: eventTicketsOnSale
             }
         })
-        nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize)
+        nextNode ! ALLOCATE_CHUNKS(chunks, chunkSize, destinationId)
     }
 
     //////////////////////////////////////////

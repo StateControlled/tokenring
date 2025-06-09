@@ -9,6 +9,7 @@ package application.core
 class Chunk(val event: Event, var allocation: Int) {
     private var ticketsSold = 0
     private var ticketsRemain = allocation
+    private var totallySoldOut = false
 
     /**
      * Returns true if there is a ticket to take, false if not. Decrements the number of tickets available if a ticket is taken.
@@ -86,6 +87,21 @@ class Chunk(val event: Event, var allocation: Int) {
 
     def getTicketsSold: Int = {
         ticketsSold
+    }
+
+    /**
+     * @return  <code>true</code> if there are no tickets remaining in this chunk
+     */
+    def isDepleted: Boolean = {
+        ticketsRemain == 0
+    }
+
+    def isTotallySoldOut: Boolean = {
+        totallySoldOut
+    }
+
+    def setIsTotallySoldOut(bool: Boolean): Unit = {
+        totallySoldOut = bool
     }
     
     override def toString: String = {

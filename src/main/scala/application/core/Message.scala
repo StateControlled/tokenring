@@ -16,8 +16,10 @@ sealed trait Message
 case class SET_NEXT_NODE(nextNode: ActorRef) extends Message
 case class SET_MASTER(master: ActorRef) extends Message
 
-
-case class ALLOCATE_CHUNKS(var chunk: List[Chunk], chunkSize: Int) extends Message
+case class ALLOCATE_CHUNKS(var chunk: List[Chunk], chunkSize: Int, destinationId: Int) extends Message
+case class TICKET_ASK(title: String, requesterId: Int) extends Message
+case object SALES_REPORT extends Message
+case class SALES_REPORT_ACK(record: SalesRecord) extends Message
 
 /**
  * A simple Stop message
@@ -36,14 +38,14 @@ case class BUY(eventName: String) extends Message
  */
 case class ORDER(order: Ticket) extends Message
 
-case class EVENT_SOLD_OUT(title: String) extends Message
+case class EVENT_SOLD_OUT(title: String, tryAgain: Boolean) extends Message
 case class EVENT_DOES_NOT_EXIST(title: String) extends Message
 
 /**
  * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
  * @param event the event
  */
-case class NEED_MORE_TICKETS(event: String, sendTo: ActorRef) extends Message
+case class NEED_MORE_TICKETS(event: String, recipientId: Int) extends Message
 
 case class EVENTS_QUERY() extends Message
 case class EVENTS_QUERY_ACK(events: List[Event]) extends Message

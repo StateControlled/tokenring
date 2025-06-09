@@ -3,7 +3,7 @@
         "name": "BoyBand Concert",
         "venue": {
             "name": "Liberty Stadium",
-            "capacity": 30
+            "capacity": 7
         },
         "date": "2026-08-25"
     },
@@ -11,7 +11,7 @@
         "name": "Orchestra Concert",
         "venue": {
             "name": "Orchestra Hall",
-            "capacity": 30
+            "capacity": 7
         },
         "date": "2025-06-28"
     }

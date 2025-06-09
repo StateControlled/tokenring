@@ -1,14 +1,16 @@
 package application.server
 
 import akka.actor.SupervisorStrategy.Restart
-import akka.actor.{ActorRef, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.{ActorRef, OneForOneStrategy, Props, Scheduler, SupervisorStrategy}
 import akka.pattern.ask
 import application.core.*
 import com.typesafe.config.ConfigFactory
 import sttp.client4.SttpClientException.TimeoutException
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
-import scala.language.postfixOps
 
 /**
  *
@@ -21,6 +23,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val kioskName                       = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[Chunk]   = List.empty
     private var kiosks: List[ActorRef]          = List.empty
+    private var salesRecords: List[SalesRecord] = List.empty
 
     initSystem()
 
@@ -37,7 +40,11 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         log.info("Populating Chunks...")
         events.foreach(event => {
             val chunk: Chunk = new Chunk(event, event.getCapacity)
+            chunk.setIsTotallySoldOut(false)
             chunksToAllocate = chunk :: chunksToAllocate
+
+            val emptyRecord: SalesRecord = SalesRecord(0, event.name, 0, event.getCapacity)
+            salesRecords = emptyRecord :: salesRecords
         })
     }
 
@@ -72,14 +79,12 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
      * @param size      the number of tickets each kiosk may take
      */
     private def distributeChunks(chunks: List[Chunk], size: Int): Unit = {
-        nextNode ! ALLOCATE_CHUNKS(chunks, size)
+        nextNode ! ALLOCATE_CHUNKS(chunks, size, -1)
     }
 
     override def receive: Receive = {
-        case ALLOCATE_CHUNKS(chunks, chunkSize) =>
-            updateChunks(chunks)
-        case NEED_MORE_TICKETS(event, sendTo) =>
-            handleNeedMoreTickets(event, sendTo)
+        case ALLOCATE_CHUNKS(chunks, chunkSize, destinationId) =>
+            updateChunks(chunks, chunkSize)
         case EVENTS_QUERY() =>
             handleEventsQuery()
         case LIST_CHUNKS =>
@@ -88,15 +93,22 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             stop()
     }
 
-    private def updateChunks(chunks: List[Chunk]): Unit = {
+    private def updateChunks(chunks: List[Chunk], chunkSize: Int): Unit = {
         chunksToAllocate = chunks
         println("Chunks have been allocated.")
         println("Chunks remaining:")
         chunksToAllocate.foreach(chunk => {
             println(chunk)
+            if (chunk.isDepleted) {
+                chunk.setIsTotallySoldOut(true)
+            }
         })
 
-//        nextNode ! ALLOCATE_CHUNKS(chunksToAllocate, 1, true)
+        var size: Int = chunkSize
+        if (chunkSize > 1) {
+            size = size - 1
+        }
+        distributeChunks(chunks, size)
     }
 
     private def handleEventsQuery(): Unit = {
@@ -108,31 +120,6 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         chunksToAllocate.foreach(chunk => {
             println(chunk)
         })
-    }
-
-    /**
-     * If a kiosk requests tickets, send tickets (if available)
-     *
-     * @param title
-     * @param sendTo
-     */
-    private def handleNeedMoreTickets(title: String, sendTo: ActorRef): Unit = {
-        val chunkResult: Option[Chunk] = chunksToAllocate.find(chunk => {
-            chunk.getEventName.equalsIgnoreCase(title)
-        })
-
-        if (chunkResult.isDefined) {
-            // TODO
-            var chunkToSend: List[Chunk] = List.empty
-            val chunk: Chunk = chunkResult.get
-            chunkToSend = chunk :: chunkToSend
-            val size: Int = chunk.getTicketsRemaining / kiosks.size
-            // start ring
-            nextNode ! ALLOCATE_CHUNKS(chunkToSend, size)
-        } else {
-            // TODO request chunks from other kiosks if Master has no more
-
-        }
     }
 
     override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
