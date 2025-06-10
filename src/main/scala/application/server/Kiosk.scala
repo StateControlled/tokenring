@@ -217,10 +217,12 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
      * Lists information about chunks
      */
     private def handleListChunks(): Unit = {
-        println(s"Kiosk $id events on sale:")
+        val builder: StringBuilder  = new StringBuilder()
+        builder.append(f"Kiosk $id events on sale:%n")
         eventTicketsOnSale.foreach(chunk => {
-            println(chunk)
+            builder.append(f"${chunk.toString}%n")
         })
+        sender() ! GENERIC_RESPONSE(builder.toString)
     }
 
     //////////////////////////////////////////

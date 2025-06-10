@@ -100,12 +100,18 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             handleEventsQuery()
         case LIST_CHUNKS =>
             handleListChunks()
+        case GENERIC_RESPONSE(message) =>
+            handleGenericResponse(message)
         case TICKET_ASK(event, recipientId) =>
             handleTicketAsk(event, recipientId)
         case SALES_REPORT(salesReport) =>
             handleSalesReport(salesReport)
         case STOP =>
             stop()
+    }
+
+    private def handleGenericResponse(message: String): Unit = {
+        println(message)
     }
 
     private def handleSalesReport(salesReport: mutable.Map[Event, Boolean]): Unit = {
@@ -155,6 +161,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         chunksToAllocate.foreach(chunk => {
             println(chunk)
         })
+        println()
         kiosks.foreach(kiosk => kiosk ! LIST_CHUNKS)
     }
 

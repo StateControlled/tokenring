@@ -16,7 +16,8 @@ If the Master has record that the event is sold out, it will tell the Kiosk, els
 around the ring. The first Kiosk to receive the message that has tickets will send a portion of its tickets to the Kiosk
 that made the initial request.
 The Master periodically sends a message around the ring to check sales. Kiosks will indicate if they have no tickets remaining for an Event.
-If all clients report no tickets available, then the Master saves this information in itself.
+If all clients report no tickets available, then the Master saves this information in itself. Any future requests for tickets will
+receive a "Sold Out" notification so the Kiosk can also mark the event as sold out.
 
 Fault tolerance
 Cluster system allows nodes to join and leave the system in an orderly manner and a one-for-one supervisor strategy
