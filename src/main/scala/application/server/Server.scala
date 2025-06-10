@@ -40,7 +40,6 @@ object Server extends App {
 
             try
                 val commandType: CommandParser.CommandType = CommandParser.parse(command)
-
                 commandType match {
                     case EXIT => exit()
                     case LIST => listChunks()

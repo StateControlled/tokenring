@@ -21,7 +21,6 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
     private val kioskName                       = config.getString("server.naming.node-actor-name")
     private var chunksToAllocate: List[Chunk]   = List.empty
     private var kiosks: List[ActorRef]          = List.empty
-    private var salesRecords: List[SalesRecord] = List.empty
     private var soldOutEvents: mutable.Map[Event, Boolean] = mutable.Map.empty
 
     override def postStop(): Unit = {
@@ -92,6 +91,8 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         nextNode ! ALLOCATE_CHUNKS(chunks, size, -1)
     }
 
+    /////////////////////////////////////////////////////////////
+
     override def receive: Receive = {
         case ALLOCATE_CHUNKS(chunks, chunkSize, destinationId) =>
             updateChunks(chunks, chunkSize)
@@ -111,8 +112,18 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         soldOutEvents = salesReport
     }
 
-    private def handleTicketAsk(title: String, requesterId: ActorRef): Unit = {
-        nextNode ! NEED_MORE_TICKETS(title, requesterId)
+    private def handleTicketAsk(event: Event, requesterId: ActorRef): Unit = {
+        val local: Option[Boolean] = soldOutEvents.get(event)
+
+        if (local.isDefined) {
+            val soldOut = local.get
+
+            if (soldOut) {
+                requesterId ! EVENT_SOLD_OUT(event, false)
+            } else {
+                nextNode ! NEED_MORE_TICKETS(event, requesterId)
+            }
+        }
     }
 
     /**

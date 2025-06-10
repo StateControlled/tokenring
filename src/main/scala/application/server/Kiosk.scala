@@ -60,15 +60,24 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
             setNextNode(node)
         case SET_MASTER(master) =>
             setMaster(master)
-        case NEED_MORE_TICKETS(title, replyTo) =>
-            handleNeedMoreTickets(title, replyTo)
+        case NEED_MORE_TICKETS(event, replyTo) =>
+            handleNeedMoreTickets(event, replyTo)
         case SALES_REPORT(events) =>
             handleSalesReport(events)
+        case EVENT_SOLD_OUT(event, tryAgain) =>
+            handleSoldOut(event, tryAgain)
         case ALLOCATE_CHUNKS(chunk, size, destinationId) =>
             handleAllocateChunk(chunk, size, destinationId)
         case BUY(title: String) =>
             handleBuy(title)
             afterBuyCheck()
+    }
+
+    private def handleSoldOut(event: Event, tryAgain: Boolean): Unit = {
+        val ch: Option[Chunk] = eventTicketsOnSale.find(chunk => chunk.event == event)
+        if (ch.isDefined) {
+            ch.get.setIsTotallySoldOut(true)
+        }
     }
 
     private def handleSalesReport(events: mutable.Map[Event, Boolean]): Unit = {
@@ -87,14 +96,14 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     private def afterBuyCheck(): Unit = {
         eventTicketsOnSale.foreach(chunk => {
             if (chunk.isDepleted) {
-                master ! TICKET_ASK(chunk.getEventName, self)
+                master ! TICKET_ASK(chunk.event, self)
             }
         })
     }
 
-    private def handleNeedMoreTickets(title: String, replyTo: ActorRef): Unit = {
+    private def handleNeedMoreTickets(event: Event, replyTo: ActorRef): Unit = {
         if (self != replyTo) {
-            val chunk: Option[Chunk] = chunkExists(title)
+            val chunk: Option[Chunk] = eventTicketsOnSale.find(chunk => chunk.event == event)
 
             if (chunk.isDefined) {
                 // send tickets if available
@@ -107,10 +116,10 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
                     return
                 }
             } else {
-                nextNode ! NEED_MORE_TICKETS(title, replyTo)
+                nextNode ! NEED_MORE_TICKETS(event, replyTo)
             }
         } else {
-            nextNode ! NEED_MORE_TICKETS(title, replyTo)
+            nextNode ! NEED_MORE_TICKETS(event, replyTo)
         }
     }
 
@@ -129,13 +138,15 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
         if (chunk.isDefined) {
             // if there is a chunk of tickets for the requested event
-            val ticketOrder: Option[Ticket] = tryTakeTickets(chunk.get)
+            val c: Chunk = chunk.get
+            val ticketOrder: Option[Ticket] = tryTakeTickets(c)
+
             if (ticketOrder.isDefined) {
                 // order succeeds with complete number of tickets
                 val ticket: Ticket = ticketOrder.get
                 sender() ! ORDER(ticket)
             } else {
-                sender() ! EVENT_SOLD_OUT(title, chunk.get.isTotallySoldOut)
+                sender() ! EVENT_SOLD_OUT(c.event, chunk.get.isTotallySoldOut)
             }
         } else {
             // no such option exists, no event

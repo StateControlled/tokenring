@@ -38,15 +38,15 @@ case class BUY(eventName: String) extends Message
  */
 case class ORDER(order: Ticket) extends Message
 
-case class EVENT_SOLD_OUT(title: String, tryAgain: Boolean) extends Message
+case class EVENT_SOLD_OUT(event: Event, tryAgain: Boolean) extends Message
 case class EVENT_DOES_NOT_EXIST(title: String) extends Message
 
 /**
  * For a [[application.server.Kiosk]] to alert the [[application.server.Master]] that it needs more tickets for an [[Event]]
  * @param event the event
  */
-case class NEED_MORE_TICKETS(event: String, replyTo: ActorRef) extends Message
-case class TICKET_ASK(title: String, replyTo: ActorRef) extends Message
+case class NEED_MORE_TICKETS(event: Event, replyTo: ActorRef) extends Message
+case class TICKET_ASK(event: Event, replyTo: ActorRef) extends Message
 case class TICKET_ASK_REPLY(chunk: Chunk) extends Message
 
 case class EVENTS_QUERY() extends Message

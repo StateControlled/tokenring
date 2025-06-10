@@ -89,7 +89,7 @@ class Client extends Actor {
                         handleSelectKiosk()
                         println("Order did not process, please try again.")
                     } else {
-                        println(s"Sorry. The event $title is sold out.")
+                        println(s"Sorry. The event ${title.name} is sold out.")
                     }
         } catch {
             case e: TimeoutException =>
