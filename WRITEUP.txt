@@ -4,11 +4,19 @@ The Master actor creates the nodes of the token ring, connects them together, th
 It holds and unallocated chunks in reserve.
 Each node (kiosk) holds a reference to its neighbor in the ring and to the Master actor.
 
-Ask
-A client will connect to a kiosk to purchase a ticket for an event.
-A client will use an Ask pattern for critical communications, such as ticket purchasing, to send a query to a kiosk and
-then wait for a response. After a certain amount of time, the operation will time out and fail. The client will then
-select another kiosk to connect to so the next attempt may succeed.
+Client
+A client will connect to a kiosk to purchase a ticket for an event and a command line interface allows a user to interact.
+A client will use an Ask pattern for ticket purchasing, to send a query to a kiosk and then wait for a response.
+After a certain amount of time, the operation will time out and fail. The client will then select another kiosk to connect to
+so the next attempt may succeed unless the Kiosk returns an "Event Sold Out" message.
+
+Sales tracking
+When a Kiosk runs out of tickets, it will ask the Master for more.
+If the Master has record that the event is sold out, it will tell the Kiosk, else it will send a request for more tickets
+around the ring. The first Kiosk to receive the message that has tickets will send a portion of its tickets to the Kiosk
+that made the initial request.
+The Master periodically sends a message around the ring to check sales. Kiosks will indicate if they have no tickets remaining for an Event.
+If all clients report no tickets available, then the Master saves this information in itself.
 
 Fault tolerance
 Cluster system allows nodes to join and leave the system in an orderly manner and a one-for-one supervisor strategy
