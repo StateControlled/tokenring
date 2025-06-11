@@ -110,24 +110,40 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
             stop()
     }
 
+    /**
+     * Prints a string message to console.
+     *
+     * @param message   a string
+     */
     private def handleGenericResponse(message: String): Unit = {
         println(message)
     }
 
+    /**
+     * Replaces current sales record with a new one.
+     *
+     * @param salesReport
+     */
     private def handleSalesReport(salesReport: mutable.Map[Event, Boolean]): Unit = {
         soldOutEvents = salesReport
     }
 
-    private def handleTicketAsk(event: Event, requesterId: ActorRef): Unit = {
+    /**
+     * Tell a requesting Node that an event is sold out or send a message around the ring requesting more tickets.
+     *
+     * @param event     the event
+     * @param replyTo   the Actor that made the request
+     */
+    private def handleTicketAsk(event: Event, replyTo: ActorRef): Unit = {
         val local: Option[Boolean] = soldOutEvents.get(event)
 
         if (local.isDefined) {
             val soldOut = local.get
 
             if (soldOut) {
-                requesterId ! EVENT_SOLD_OUT(event, false)
+                replyTo ! EVENT_SOLD_OUT(event, false)
             } else {
-                nextNode ! NEED_MORE_TICKETS(event, requesterId)
+                nextNode ! NEED_MORE_TICKETS(event, replyTo)
             }
         }
     }
@@ -156,6 +172,9 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         sender() ! EVENTS_QUERY_ACK(events)
     }
 
+    /**
+     * Prints details of currently held chunks then requests Kiosks send similar data.
+     */
     private def handleListChunks(): Unit = {
         println("[MASTER] Chunks in reserve:")
         chunksToAllocate.foreach(chunk => {
@@ -170,6 +189,7 @@ class Master(override val id : Int, events: List[Event]) extends Kiosk(id) {
         case _: RuntimeException => Restart
     }
 
+    /** For a graceful shutdown. */
     private def stop(): Unit = {
         context.system.terminate()
     }

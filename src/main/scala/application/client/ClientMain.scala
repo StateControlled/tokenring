@@ -25,13 +25,12 @@ object ClientMain extends App {
     private def run(): Unit = {
         while (true) {
             menu()
-            println("Next > ")
             val command = readLine()
             try
                 val commandType: CommandParser.CommandType = CommandParser.parse(command)
 
                 commandType match {
-                    case HELP => menu()
+                    case HELP => help()
                     case EXIT => exit()
                     case NEXT => sendSwitchCommand()
                     case LIST => sendEventsQuery()
@@ -52,13 +51,22 @@ object ClientMain extends App {
     private def menu(): Unit = {
         println("--Enter next command")
         commands()
+        prompt()
     }
 
+    /**
+     * Some additional descriptive text
+     */
     private def help(): Unit = {
         println("--Help")
-        commands()
+        println("Distributed Ticket Selling Application")
+        println("The client interface allows messages to be sent to a remote Node.")
+        println("Type a command after the \"NEXT >\" prompt")
     }
 
+    /**
+     * prints all commands in [[CommandParser]]
+     */
     private def commands(): Unit = {
         CommandParser.CommandType.values
             .filter(ord => ord != CommandType.NO_ACTION) // don't include irrelevant options
@@ -79,22 +87,31 @@ object ClientMain extends App {
         println("Event > ")
         val eventTitle = readLine()
         client ! BUY(eventTitle)
+        prompt()
     }
 
     private def sendSwitchCommand(): Unit = {
         client ! SWITCH
+        prompt()
     }
 
     private def sendEventsQuery(): Unit = {
         client ! EVENTS_QUERY()
+        prompt()
     }
 
     private def sendListOrderRequest(): Unit = {
         client ! PRINT_ORDERS
+        prompt()
     }
 
     private def saveOrders(): Unit = {
         client ! SAVE_ORDERS
+        prompt()
+    }
+
+    private def prompt(): Unit = {
+        println("Next > ")
     }
     
 }

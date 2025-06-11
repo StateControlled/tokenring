@@ -58,10 +58,11 @@ class Client extends Actor {
             saveOrders()
     }
 
-    private def handleSoldOut(title: String): Unit = {
-
-    }
-
+    /**
+     * Called when the [[EVENT_DOES_NOT_EXIST]] message is received.
+     *
+     * @param title an event title
+     */
     private def handleNoEvent(title: String): Unit = {
         println(s"The event $title does not exist.")
         println("Order could not be completed.")
@@ -106,6 +107,10 @@ class Client extends Actor {
         }
     }
 
+    /**
+     * Prints a list of [[Event Events]]
+     * @param eventsList    a list of Events
+     */
     private def handleEventQueryAck(eventsList: List[Event]): Unit = {
         println("Events on sale:")
         printList(eventsList)
@@ -117,12 +122,15 @@ class Client extends Actor {
         println(ticket)
     }
 
+    /**
+     *
+     */
     private def printOrders(): Unit = {
         if (orders.isEmpty) {
             println("No orders")
         } else {
             println("Orders:")
-            orders.foreach(order => println(order))
+            println(orders)
         }
     }
 
@@ -136,6 +144,9 @@ class Client extends Actor {
         master ! EVENTS_QUERY()
     }
 
+    /**
+     * Selects another kiosk.
+     */
     private def handleSelectKiosk(): Unit = {
         kioskId = kioskId + 1
         if (kioskId > numberOfKiosks) {
@@ -144,6 +155,11 @@ class Client extends Actor {
         kiosk = context.actorSelection(s"$remoteAddress/user/kiosk$kioskId")
     }
 
+    /**
+     * Prints all elements of a List to console, with each element on a separate line.
+     *
+     * @param list  a list to be printed
+     */
     private def printList(list: List[Any]): Unit = {
         list.foreach(e => println(e.toString))
     }

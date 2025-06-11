@@ -1,15 +1,18 @@
 William Berthouex
 CSC536 Distributed Systems II
-Final Project: Ticketing System
+Final Project: Distributed Ticket Sale Application
 
-GitHub repository : https://github.com/StateControlled/tokenring.git
+GitHub repository: https://github.com/StateControlled/tokenring.git
 
 Compiled with Scala 3.3.6
+Successfully compiled and run in Windows Terminal and Intellij terminal
+
+####################################################################
 
 How to run:
-Start the sbt CLI in the root directory
-From the sbt CLI run the commands
+From the root directory enter the commands
 
+    > sbt
     > compile
     > run
 
@@ -32,3 +35,7 @@ EXIT    - terminates the client
 Server commands:
 LIST    - prints event sales data from the Master and all Kiosks to the console
 EXIT    - terminates the system
+
+####################################################################
+
+See WRITEUP.txt for more detailed explanation.

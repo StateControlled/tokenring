@@ -101,6 +101,14 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
         })
     }
 
+    /**
+     * If the Master sends a [[NEED_MORE_TICKETS]] message around the ring, this handles the response. If this Kiosk does
+     * not have tickets for the event or does not have enough to split its remaining tickets, it passes the message to the next node in the ring.
+     * Else it sends a chunk of tickets directly to the requester and stops the message from passing around the ring.
+     *
+     * @param event     the event
+     * @param replyTo   the Kiosk that made the request
+     */
     private def handleNeedMoreTickets(event: Event, replyTo: ActorRef): Unit = {
         if (self != replyTo) {
             val chunk: Option[Chunk] = eventTicketsOnSale.find(chunk => chunk.event == event)
@@ -129,7 +137,8 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
 
     /**
      * Handles a request to [[Buy purchase]] tickets. If a ticket is available for the given event, returns a [[Ticket]],
-     * else requests more tickets from the [[Master]]
+     * else requests more tickets from the [[Master]] <br>
+     * If the event does not exist, tell the Client so.
      *
      * @param title     the event title
      */
@@ -226,6 +235,7 @@ class Kiosk(val id : Int) extends Actor with ActorLogging {
     }
 
     //////////////////////////////////////////
+
     // Getters and Setters
 
     /**
